@@ -258,7 +258,7 @@ Frontend will be available at `http://localhost:3000`
    - Vercel automatically deploys on push
    - Your portfolio builder is live!
 
-**Frontend URL**: [YOUR_VERCEL_DEPLOYMENT_URL_HERE]
+**Frontend URL**: [[PersonaForge](https://personaforge-omega.vercel.app/)]
 
 ### Backend - Render
 
@@ -280,7 +280,7 @@ Frontend will be available at `http://localhost:3000`
    ```
 
 4. **Set Environment Variables**
-   - `HOST`: Your Vercel frontend URL
+   - `CORS`: Your Vercel frontend URL
    - `GROQ_API_KEY`: Your Groq API key
 
 5. **Deploy**

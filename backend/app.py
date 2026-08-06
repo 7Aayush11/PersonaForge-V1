@@ -14,7 +14,7 @@ load_dotenv()
 app = FastAPI()
 
 origins = [
-    os.getenv("HOST")
+    os.getenv("CORS")
 ]
 
 app.add_middleware(
