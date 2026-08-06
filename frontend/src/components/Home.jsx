@@ -2,7 +2,6 @@ import { useState } from "react";
 import Loader from "./Loader";
 import FilePreview from "./FilePreview";
 import Upload from "./Upload";
-import logo from "../logo.svg";
 
 export default function Home(){
 
