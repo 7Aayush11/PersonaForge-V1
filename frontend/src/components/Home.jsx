@@ -11,6 +11,9 @@ export default function Home(){
     const [message, setMessage] = useState("")
     const [chat, setChat] = useState([])
 
+    const api = process.env.REACT_APP_API_URL
+    console.log(api);
+    
     const handleUpload = async (e) =>{
         const file = e.target.files[0]
         if(!file) return
@@ -20,7 +23,7 @@ export default function Home(){
 
         setLoading(true)
         try {
-            const res = await fetch("http://localhost:8000/generate", {
+            const res = await fetch(`${api}/generate`, {
                 method: "POST",
                 body: formData
             })
@@ -42,7 +45,7 @@ export default function Home(){
         setLoading(true)
 
         try {
-            const res = await fetch("http://localhost:8000/edit", {
+            const res = await fetch(`${api}/edit`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({html: html, instruction: message})

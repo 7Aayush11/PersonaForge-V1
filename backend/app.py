@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from dotenv import load_dotenv
-import uvicorn, os, shutil
+import uvicorn, os, shutil, tempfile
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from parser import get_json
@@ -14,7 +14,7 @@ load_dotenv()
 app = FastAPI()
 
 origins = [
-    "http://localhost:3000"
+    os.getenv("HOST")
 ]
 
 app.add_middleware(
@@ -55,9 +55,12 @@ async def upload(file: UploadFile = File(...)):
             status_code=400, detail="Invalid File Type"
         )
     
-    temp_path = f"temp_{file.filename}"
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    with tempfile.NamedTemporaryFile(
+        delete=False, 
+        suffix=os.path.splitext(file.filename)[1]
+    ) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        temp_path = tmp.name
     
     try:
         if file.content_type=="application/pdf":
