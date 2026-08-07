@@ -11,7 +11,6 @@ export default function Home(){
     const [chat, setChat] = useState([])
 
     const api = process.env.REACT_APP_API_URL
-    console.log(api);
     
     const handleUpload = async (e) =>{
         const file = e.target.files[0]
