@@ -1,13 +1,16 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import uvicorn, os, shutil, tempfile
+from models import EditRequest, DeployRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from parser import get_json
 from generate import generate
-from models import EditRequest
 from update_code import updateHTML
-from fastapi.middleware.cors import CORSMiddleware
+from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site
+
 
 load_dotenv()
 
@@ -88,6 +91,34 @@ async def upload(file: UploadFile = File(...)):
             
     return {"text": text, "json_text": json_text, "html": html}
 
+@app.post("/deploy")
+async def deploy_site(request: DeployRequest):
+    if not request.html.strip():
+        raise HTTPException(
+            status_code=400, detail="No HTML found, generate a portfolio first"
+        )
+
+    slug = clean_slug_input(request.slug)
+
+    error = validate_slug(slug)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+
+    if is_slug_taken(slug):
+        raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
+
+    save_site(slug, request.html)
+
+    backend_url = os.getenv("BACKEND_URL")
+    return {"slug": slug, "url": f"{backend_url}/p/{slug}"}
+
+
+@app.get("/p/{slug}", response_class=HTMLResponse)
+async def serve_site(slug: str):
+    html = get_site(slug.lower())
+    if html is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return HTMLResponse(content=html)
 
 if __name__ == "__main__":
     uvicorn.run(app, port=8000, host="0.0.0.0")

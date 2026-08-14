@@ -9,6 +9,10 @@ export default function Home(){
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState("")
     const [chat, setChat] = useState([])
+    const [slug, setSlug] = useState("")
+    const [deployedUrl, setDeployedUrl] = useState("")
+    const [deployError, setDeployError] = useState("")
+    const [deploying, setDeploying] = useState(false)
 
     const api = process.env.REACT_APP_API_URL
     
@@ -61,50 +65,100 @@ export default function Home(){
     }
 
     const handleDownload = () => {
-        // Create a blob from your HTML string
         const blob = new Blob([html], { type: "text/html" })
-        
-        // Create a temporary download link
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
         a.download = "portfolio.html"
-        
-        // Trigger the download
         a.click()
-        
-        // Clean up
         URL.revokeObjectURL(url)
+    }
+
+    const handleDeploy = async () => {
+        if(!slug.trim() || !html) return
+
+        setDeploying(true)
+        setDeployError("")
+
+        try {
+            const res = await fetch(`${api}/deploy`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({html: html, slug: slug})
+            })
+
+            const data = await res.json()
+
+            if(!res.ok){
+                setDeployError(data.detail || "Deployment failed")
+                return
+            }
+
+            setDeployedUrl(data.url)
+        } catch (error) {
+            setDeployError("Something went wrong: " + error.message)
+        } finally {
+            setDeploying(false)
+        }
     }
 
     return(
         <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: "100vh", overflow: "hidden", background: "radial-gradient(ellipse at 10% 20%, rgba(99,102,241,0.12), transparent 10%), radial-gradient(ellipse at 90% 80%, rgba(236,72,153,0.08), transparent 10%), linear-gradient(135deg,#0f172a,#071029)" }}>
 
-            {/* Side decorative blobs */}
             <div style={{ position: "absolute", left: -80, top: "20%", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle at 30% 30%, rgba(74,157,236,0.18), rgba(124,58,237,0.08))", filter: "blur(40px)", zIndex: 0 }} />
             <div style={{ position: "absolute", right: -80, bottom: "15%", width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle at 70% 70%, rgba(236,72,153,0.14), rgba(245,158,11,0.06))", filter: "blur(48px)", zIndex: 0 }} />
 
-            {/* Top bar */}
-            <div style={{ padding: "16px", background: "rgba(26,26,46,0.85)", color: "white", display: "flex", alignItems: "center", gap: "16px", zIndex: 2 }}>
+            <div style={{ padding: "16px", background: "rgba(26,26,46,0.85)", color: "white", display: "flex", alignItems: "center", gap: "16px", zIndex: 2, flexWrap: "wrap" }}>
                 <h2 style={{ margin: 0 }}>PersonaForge</h2>
                 {html && (
-                    <button 
-                        onClick={handleDownload}
-                        style={{ 
-                        padding: "8px 16px", 
-                        background: "#1abc9c", 
-                        color: "white", 
-                        border: "none", 
-                        borderRadius: "6px", 
-                        cursor: "pointer" 
-                        }}
-                    >
-                        Download Portfolio
-                    </button>
+                    <>
+                        <button 
+                            onClick={handleDownload}
+                            style={{ 
+                            padding: "8px 16px", 
+                            background: "#1abc9c", 
+                            color: "white", 
+                            border: "none", 
+                            borderRadius: "6px", 
+                            cursor: "pointer" 
+                            }}
+                        >
+                            Download Portfolio
+                        </button>
+
+                        {!deployedUrl ? (
+                            <>
+                                <input
+                                    value={slug}
+                                    onChange={(e) => setSlug(e.target.value)}
+                                    placeholder="choose-a-name"
+                                    style={{ padding: "8px", borderRadius: "6px", border: "none" }}
+                                />
+                                <button
+                                    onClick={handleDeploy}
+                                    disabled={deploying || !slug.trim()}
+                                    style={{
+                                        padding: "8px 16px",
+                                        background: "#6366f1",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "6px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    {deploying ? "Deploying..." : "Deploy"}
+                                </button>
+                            </>
+                        ) : (
+                            <a href={deployedUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#1abc9c" }}>
+                                {deployedUrl}
+                            </a>
+                        )}
+                        {deployError && <span style={{ color: "#f87171" }}>{deployError}</span>}
+                    </>
                 )}
             </div>
 
-            {/* Main area container (keeps content above background) */}
             <div style={{ flex: 1, position: "relative", zIndex: 2, display: "flex", flexDirection: "column", minHeight: 0 }}>
 
                 {loading ? (
