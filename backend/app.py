@@ -108,11 +108,11 @@ async def deploy_site(request: DeployRequest):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
     
     
-    token = secrets.token_urlsafe(16)
-    save_site(slug, request.html, token)
+    delete_token = secrets.token_urlsafe(16)
+    save_site(slug, request.html, delete_token)
 
     backend_url = os.getenv("BACKEND_URL")
-    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "delete_token": token}
+    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "delete_token": delete_token}
 
 
 @app.get("/p/{slug}", response_class=HTMLResponse)

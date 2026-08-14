@@ -21,11 +21,11 @@ def is_slug_taken(slug: str) -> bool:
     result = supabase.table("deployed_sites").select("slug").eq("slug", slug).execute()
     return len(result.data) > 0
 
-def save_site(slug: str, html: str, token: str):
+def save_site(slug: str, html: str, delete_token: str):
     supabase.table("deployed_sites").insert({
         "slug": slug,
         "html_content": html,
-        "delete_token": token,
+        "delete_token": delete_token,
     }).execute()
     
 def get_site(slug: str):
