@@ -13,6 +13,11 @@ export default function Home(){
     const [deployedUrl, setDeployedUrl] = useState("")
     const [deployError, setDeployError] = useState("")
     const [deploying, setDeploying] = useState(false)
+    const [deleteToken, setDeleteToken] = useState("")
+    const [manageSlug, setManageSlug] = useState("")
+    const [manageToken, setManageToken] = useState("")
+    const [manageMessage, setManageMessage] = useState("")
+    const [deletingSite, setDeletingSite] = useState(false)
 
     const api = process.env.REACT_APP_API_URL
     
@@ -79,6 +84,8 @@ export default function Home(){
 
         setDeploying(true)
         setDeployError("")
+        setDeployedUrl(data.url)
+        setDeleteToken(data.delete_token)
 
         try {
             const res = await fetch(`${api}/deploy`, {
@@ -99,6 +106,32 @@ export default function Home(){
             setDeployError("Something went wrong: " + error.message)
         } finally {
             setDeploying(false)
+        }
+    }
+
+    const handleDeleteSite = async () => {
+        if(!manageSlug.trim() || !manageToken.trim()) return
+
+        setDeletingSite(true)
+        setManageMessage("")
+
+        try {
+            const res = await fetch(`${api}/p/${manageSlug.trim()}?token=${encodeURIComponent(manageToken.trim())}`, {
+                method: "DELETE"
+            })
+
+            const data = await res.json()
+
+            if(!res.ok){
+                setManageMessage(data.detail || "Delete failed")
+                return
+            }
+
+            setManageMessage("Portfolio deleted successfully")
+        } catch (error) {
+            setManageMessage("Something went wrong: " + error.message)
+        } finally {
+            setDeletingSite(false)
         }
     }
 
@@ -125,6 +158,36 @@ export default function Home(){
                         >
                             Download Portfolio
                         </button>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <input
+                                value={manageSlug}
+                                onChange={(e) => setManageSlug(e.target.value)}
+                                placeholder="slug to delete"
+                                style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
+                            />
+                            <input
+                                value={manageToken}
+                                onChange={(e) => setManageToken(e.target.value)}
+                                placeholder="delete token"
+                                style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
+                            />
+                            <button
+                                onClick={handleDeleteSite}
+                                disabled={deletingSite || !manageSlug.trim() || !manageToken.trim()}
+                                style={{
+                                    padding: "6px 12px",
+                                    background: "#ef4444",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                    fontSize: "12px"
+                                }}
+                            >
+                                {deletingSite ? "Deleting..." : "Delete Portfolio"}
+                            </button>
+                            {manageMessage && <span style={{ fontSize: "12px", color: "#fbbf24" }}>{manageMessage}</span>}
+                        </div>
 
                         {!deployedUrl ? (
                             <>
@@ -150,9 +213,14 @@ export default function Home(){
                                 </button>
                             </>
                         ) : (
-                            <a href={deployedUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#1abc9c" }}>
-                                {deployedUrl}
-                            </a>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <a href={deployedUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#1abc9c" }}>
+                                    {deployedUrl}
+                                </a>
+                                <span style={{ fontSize: "12px", color: "#fbbf24" }}>
+                                    Save this delete token now, it won't be shown again: {deleteToken}
+                                </span>
+                            </div>
                         )}
                         {deployError && <span style={{ color: "#f87171" }}>{deployError}</span>}
                     </>

@@ -2,14 +2,14 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import uvicorn, os, shutil, tempfile
+import uvicorn, os, shutil, tempfile, secrets
 from models import EditRequest, DeployRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from parser import get_json
 from generate import generate
 from update_code import updateHTML
-from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site
+from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site, delete_site
 
 
 load_dotenv()
@@ -106,11 +106,13 @@ async def deploy_site(request: DeployRequest):
 
     if is_slug_taken(slug):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
-
-    save_site(slug, request.html)
+    
+    
+    token = secrets.token_urlsafe(16)
+    save_site(slug, request.html, token)
 
     backend_url = os.getenv("BACKEND_URL")
-    return {"slug": slug, "url": f"{backend_url}/p/{slug}"}
+    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "delete_token": token}
 
 
 @app.get("/p/{slug}", response_class=HTMLResponse)
@@ -120,5 +122,15 @@ async def serve_site(slug: str):
         raise HTTPException(status_code=404, detail="Page not found")
     return HTMLResponse(content=html)
 
+@app.delete("/p/{slug}")
+async def remove_site(slug: str, token: str):
+    result = delete_site(slug.lower(), token)
+    
+    if result == "Not Found":
+        raise HTTPException(status_code=404, detail= "Page not found")
+    if result == "Invalid token":
+        raise HTTPException(status_code=403, detail= "Invalid token, please use correct token")
+    
+    return {"message": "Portfolio deleted successfully"}
 if __name__ == "__main__":
     uvicorn.run(app, port=8000, host="0.0.0.0")

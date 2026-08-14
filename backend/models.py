@@ -7,3 +7,4 @@ class EditRequest(BaseModel):
 class DeployRequest(BaseModel):
     slug: str
     html: str
+    token: str

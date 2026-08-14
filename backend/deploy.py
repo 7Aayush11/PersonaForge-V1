@@ -1,4 +1,4 @@
-import re
+import re, secrets
 from db import supabase
 
 RESERVED_SLUG = ["www", "api", "admin", "generate", "deploy", "mail", "edit", "p", "help", "support", "about", "contact", "test", "staging", "dev", "personaforge"]
@@ -21,10 +21,11 @@ def is_slug_taken(slug: str) -> bool:
     result = supabase.table("deployed_sites").select("slug").eq("slug", slug).execute()
     return len(result.data) > 0
 
-def save_site(slug: str, html: str):
+def save_site(slug: str, html: str, token: str):
     supabase.table("deployed_sites").insert({
         "slug": slug,
         "html_content": html,
+        "delete_token": token,
     }).execute()
     
 def get_site(slug: str):
@@ -33,3 +34,17 @@ def get_site(slug: str):
         return None
     
     return result.data[0]["html_content"]
+
+def delete_site(slug: str, token: str):
+    result = supabase.table("deployed_sites").select("delete_token").eq("slug", slug).execute()
+    
+    if not result.data:
+        return "Not Found"
+    
+    stored_token = result.data[0]["delete_token"]
+    
+    if not stored_token or stored_token!=token:
+        return "Invalid token"
+    
+    supabase.table("deployed_sites").delete().eq("slug", slug).execute()
+    return "Your portfolio is successfully deleted"
