@@ -71,7 +71,7 @@ export default function Header({ showReset, onReset }) {
       <Brand>
         <Spark />
         <Wordmark>PersonaForge</Wordmark>
-        <Tagline>// forge your identity</Tagline>
+        <Tagline> || forge your identity</Tagline>
       </Brand>
       {showReset && <StartOver onClick={onReset}>Start over</StartOver>}
     </Bar>
