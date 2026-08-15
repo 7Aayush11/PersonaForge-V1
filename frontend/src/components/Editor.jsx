@@ -144,11 +144,55 @@ const LiveLink = styled.a`
   word-break: break-all;
 `;
 
+const ImageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const ImageRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const Thumb = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+`;
+
+const ImageLabel = styled.span`
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+`;
+
+const UploadLabel = styled.label`
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--steel-soft);
+  color: var(--steel);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  input { display: none; }
+
+  &:hover { filter: brightness(1.2); }
+`;
+
 export default function Editor({
   html, chat, message, setMessage, handleEdit, editing,
   handleDownload,
   slug, setSlug, deployedUrl, deploying, handleDeploy,
   manageSlug, setManageSlug, manageToken, setManageToken, deletingSite, handleDeleteSite,
+  imageSlots, uploadingSlot, onImageUpload,
 }) {
   return (
     <Layout>
@@ -185,6 +229,38 @@ export default function Editor({
             </PrimaryBtn>
           </ChatInputRow>
         </ChatSection>
+
+        <Section>
+          <SectionTitle>&#128247; Photos</SectionTitle>
+          <SectionHint>
+            Replace any placeholder photo with your own. Images are resized in your browser
+            and only become part of the page &mdash; nothing is uploaded to us unless you deploy.
+          </SectionHint>
+          {(!imageSlots || imageSlots.length === 0) ? (
+            <SectionHint>No photo placeholders found in this portfolio.</SectionHint>
+          ) : (
+            <ImageList>
+              {imageSlots.map((slot) => (
+                <ImageRow key={slot.slotId}>
+                  <Thumb src={slot.src} alt={slot.label} />
+                  <ImageLabel>{slot.label}</ImageLabel>
+                  <UploadLabel>
+                    {uploadingSlot === slot.slotId ? '...' : 'Replace'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) onImageUpload(slot.slotId, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </UploadLabel>
+                </ImageRow>
+              ))}
+            </ImageList>
+          )}
+        </Section>
 
         <Section>
           <SectionTitle>&#8681; Download</SectionTitle>

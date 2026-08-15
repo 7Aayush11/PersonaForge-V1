@@ -5,6 +5,13 @@ import Landing from "./Landing";
 import Editor from "./Editor";
 import Loader from "./Loader";
 import ToastStack from "./Toast";
+import {
+  extractImageSlots,
+  replaceImageSlot,
+  compressImageFile,
+  stripImagesForEdit,
+  restoreImages,
+} from "../utils/imageSlots";
 
 export default function Home() {
   const [html, setHtml] = useState("");
@@ -19,6 +26,7 @@ export default function Home() {
   const [manageToken, setManageToken] = useState("");
   const [deletingSite, setDeletingSite] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [uploadingSlot, setUploadingSlot] = useState(null);
 
   const api = process.env.REACT_APP_API_URL;
 
@@ -65,10 +73,12 @@ export default function Home() {
     setEditing(true);
 
     try {
+      const { strippedHtml, imageMap } = stripImagesForEdit(html);
+
       const res = await fetch(`${api}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, instruction }),
+        body: JSON.stringify({ html: strippedHtml, instruction }),
       });
 
       if (!res.ok) {
@@ -78,12 +88,36 @@ export default function Home() {
       }
 
       const data = await res.json();
-      setHtml(data.html);
+      const restoredHtml = restoreImages(data.html, imageMap);
+      setHtml(restoredHtml);
       setChat(prev => [...prev, { role: "assistant", content: "Updated your portfolio." }]);
     } catch (error) {
       addToast({ type: "error", title: "Edit failed", message: error.message });
     } finally {
       setEditing(false);
+    }
+  };
+
+  const handleImageUpload = async (slotId, file) => {
+    if (!file.type.startsWith("image/")) {
+      addToast({ type: "error", title: "Invalid file", message: "Please choose an image file." });
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      addToast({ type: "error", title: "File too large", message: "Please choose an image under 15MB." });
+      return;
+    }
+
+    setUploadingSlot(slotId);
+    try {
+      const dataUrl = await compressImageFile(file);
+      const updatedHtml = replaceImageSlot(html, slotId, dataUrl);
+      setHtml(updatedHtml);
+      addToast({ type: "success", title: "Photo updated", message: "Your image has replaced the placeholder." });
+    } catch (error) {
+      addToast({ type: "error", title: "Photo update failed", message: error.message });
+    } finally {
+      setUploadingSlot(null);
     }
   };
 
@@ -167,6 +201,8 @@ export default function Home() {
     setDeployedUrl("");
   };
 
+  const imageSlots = extractImageSlots(html);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header showReset={!!html} onReset={handleReset} />
@@ -198,6 +234,9 @@ export default function Home() {
             setManageToken={setManageToken}
             deletingSite={deletingSite}
             handleDeleteSite={handleDeleteSite}
+            imageSlots={imageSlots}
+            uploadingSlot={uploadingSlot}
+            onImageUpload={handleImageUpload}
           />
         )}
       </div>
