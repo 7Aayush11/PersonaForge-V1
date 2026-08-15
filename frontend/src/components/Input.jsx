@@ -19,7 +19,6 @@ const Input = ({ onChange, accept = ".pdf,.jpg,.png", text = "Choose file" }) =>
 }
 
 const StyledWrapper = styled.div`
-
   .inputLabel {
     position: relative;
     display: inline-block;
@@ -34,7 +33,7 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     height: 100%;
-    background: linear-gradient(90deg, rgba(74,157,236,0.18), rgba(124,58,237,0.12));
+    background: linear-gradient(90deg, rgba(255,107,53,0.18), rgba(74,157,236,0.18));
     color: #e1e1e1;
     font-weight: 700;
     transition: all 0.25s ease;
@@ -48,11 +47,11 @@ const StyledWrapper = styled.div`
   .inputLabel:hover .labelText,
   .inputLabel:focus-within .labelText {
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(2,6,23,0.6), 0 0 0 6px rgba(74,157,236,0.06);
-    background: linear-gradient(90deg, rgba(74,157,236,0.26), rgba(124,58,237,0.18));
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6), 0 0 0 6px rgba(255,107,53,0.1);
+    background: linear-gradient(90deg, rgba(255,107,53,0.26), rgba(74,157,236,0.22));
   }
 
-  .labelText::before{
+  .labelText::before {
     content: "📤";
     display: inline-block;
     font-size: 18px;
