@@ -84,24 +84,23 @@ export default function Home(){
 
         setDeploying(true)
         setDeployError("")
-        setDeployedUrl(data.url)
-        setDeleteToken(data.delete_token)
-
+        
         try {
             const res = await fetch(`${api}/deploy`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({html: html, slug: slug})
             })
-
+            
             const data = await res.json()
-
+            
             if(!res.ok){
                 setDeployError(data.detail || "Deployment failed")
                 return
             }
-
+            
             setDeployedUrl(data.url)
+            setDeleteToken(data.delete_token)
         } catch (error) {
             setDeployError("Something went wrong: " + error.message)
         } finally {
@@ -143,6 +142,36 @@ export default function Home(){
 
             <div style={{ padding: "16px", background: "rgba(26,26,46,0.85)", color: "white", display: "flex", alignItems: "center", gap: "16px", zIndex: 2, flexWrap: "wrap" }}>
                 <h2 style={{ margin: 0 }}>PersonaForge</h2>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input
+                        value={manageSlug}
+                        onChange={(e) => setManageSlug(e.target.value)}
+                        placeholder="slug to delete"
+                        style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
+                    />
+                    <input
+                        value={manageToken}
+                        onChange={(e) => setManageToken(e.target.value)}
+                        placeholder="delete token"
+                        style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
+                    />
+                    <button
+                        onClick={handleDeleteSite}
+                        disabled={deletingSite || !manageSlug.trim() || !manageToken.trim()}
+                        style={{
+                            padding: "6px 12px",
+                            background: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                        }}
+                    >
+                        {deletingSite ? "Deleting..." : "Delete Portfolio"}
+                    </button>
+                    {manageMessage && <span style={{ fontSize: "12px", color: "#fbbf24" }}>{manageMessage}</span>}
+                </div>
                 {html && (
                     <>
                         <button 
@@ -158,36 +187,6 @@ export default function Home(){
                         >
                             Download Portfolio
                         </button>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                            <input
-                                value={manageSlug}
-                                onChange={(e) => setManageSlug(e.target.value)}
-                                placeholder="slug to delete"
-                                style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
-                            />
-                            <input
-                                value={manageToken}
-                                onChange={(e) => setManageToken(e.target.value)}
-                                placeholder="delete token"
-                                style={{ padding: "6px", borderRadius: "6px", border: "none", fontSize: "12px" }}
-                            />
-                            <button
-                                onClick={handleDeleteSite}
-                                disabled={deletingSite || !manageSlug.trim() || !manageToken.trim()}
-                                style={{
-                                    padding: "6px 12px",
-                                    background: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontSize: "12px"
-                                }}
-                            >
-                                {deletingSite ? "Deleting..." : "Delete Portfolio"}
-                            </button>
-                            {manageMessage && <span style={{ fontSize: "12px", color: "#fbbf24" }}>{manageMessage}</span>}
-                        </div>
 
                         {!deployedUrl ? (
                             <>
