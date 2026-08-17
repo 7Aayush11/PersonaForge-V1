@@ -338,7 +338,7 @@ Edits existing portfolio with instructions
 
 ## 🖼️ Demo/Preview
 
-(<video controls src="assets/Demo - PersonaForge.mp4" title="Demo"></video>)
+<video controls src="assets/Demo - PersonaForge.mp4" title="Demo">Demo Clip</video>
 
 ## 🎓 Learning Resources
 
