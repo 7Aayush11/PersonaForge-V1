@@ -33,7 +33,7 @@ const Spark = styled.span`
   }
 `;
 
-const Wordmark = styled.span`
+const Wordmark = styled.nav`
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 20px;
