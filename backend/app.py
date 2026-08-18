@@ -6,7 +6,6 @@ import uvicorn, os, shutil, tempfile, secrets
 from models import EditRequest, DeployRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
-from parser import get_json
 from generate import generate
 from update_code import updateHTML
 from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site, delete_site
@@ -42,10 +41,10 @@ async def edit(request: EditRequest):
     
     updated_html = updateHTML(request.html, request.instruction)
     
-    if not updated_html.strip().startswith("<!DOCTYPE html>"):
-                raise HTTPException(
-                    status_code=500, detail="Portfolio Generation failed - Invalid html"
-                )
+    # if not updated_html.strip().startswith("```json"):
+    #             raise HTTPException(
+    #                 status_code=500, detail="Portfolio Generation failed - Invalid html"
+    #             )
                 
     return {"html": updated_html}
 
@@ -71,25 +70,18 @@ async def upload(file: UploadFile = File(...)):
         else:
             text = get_image_text(temp_path)
         
+        html = generate(text)
         
-        json_text = get_json(text)
-        if type(json_text)!=dict:
+        if not html.strip().startswith("```json"):
             raise HTTPException(
-                status_code=500, detail="Could not parse text - Please try again later"
-            )
-        
-        html = generate(json_text)
-        
-        if not html.strip().startswith("<!DOCTYPE html>"):
-            raise HTTPException(
-                status_code=500, detail="Portfolio Generation failed - Invalid html"
+                status_code=500, detail="Portfolio Generation failed - Invalid Code"
             )
         
     finally:
         os.remove(temp_path)
         
             
-    return {"text": text, "json_text": json_text, "html": html}
+    return {"text": text, "html": html}
 
 @app.post("/deploy")
 async def deploy_site(request: DeployRequest):

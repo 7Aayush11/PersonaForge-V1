@@ -20,6 +20,6 @@ def get_json(text: str):
             {"text": text}
         )
         
-        return json.loads(response.content)
+        return response.content
     except Exception as e:
         return (f"An error occurred {e}")
