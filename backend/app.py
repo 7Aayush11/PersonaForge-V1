@@ -9,6 +9,8 @@ from image_extract import get_image_text
 from generate import generate
 from update_code import updateHTML
 from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site, delete_site
+from parse_files import parse_generated_files
+from parser import get_json
 
 
 load_dotenv()
@@ -70,18 +72,20 @@ async def upload(file: UploadFile = File(...)):
         else:
             text = get_image_text(temp_path)
         
-        html = generate(text)
+        text_json = get_json(text)
+        html = generate(text_json)
+                
+        try:
+            print(html)
+            files = parse_generated_files(html)
         
-        if not html.strip().startswith("```json"):
-            raise HTTPException(
-                status_code=500, detail="Portfolio Generation failed - Invalid Code"
-            )
-        
+        except ValueError as e:
+            raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+            
     finally:
         os.remove(temp_path)
-        
             
-    return {"text": text, "html": html}
+    return {"text": text, "html": html, "files": files}
 
 @app.post("/deploy")
 async def deploy_site(request: DeployRequest):

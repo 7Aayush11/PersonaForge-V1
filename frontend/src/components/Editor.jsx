@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-
+import { assemblePreviewHTML } from '../utils/assemblePreview';
 const Layout = styled.div`
   display: flex;
   flex: 1;
@@ -18,189 +18,188 @@ const PreviewFrame = styled.iframe`
   border: none;
 `;
 
-const Sidebar = styled.div`
-  width: 380px;
-  min-width: 340px;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border);
-  background: var(--bg-void);
-  overflow-y: auto;
-`;
+// const Sidebar = styled.div`
+//   width: 380px;
+//   min-width: 340px;
+//   display: flex;
+//   flex-direction: column;
+//   border-left: 1px solid var(--border);
+//   background: var(--bg-void);
+//   overflow-y: auto;
+// `;
 
-const Section = styled.div`
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-shrink: 0;
-`;
+// const Section = styled.div`
+//   padding: 18px 20px;
+//   border-bottom: 1px solid var(--border);
+//   display: flex;
+//   flex-direction: column;
+//   gap: 10px;
+//   flex-shrink: 0;
+// `;
 
-const SectionTitle = styled.h3`
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-`;
+// const SectionTitle = styled.h3`
+//   margin: 0;
+//   font-family: var(--font-display);
+//   font-size: 14px;
+//   font-weight: 600;
+// `;
 
-const SectionHint = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-`;
+// const SectionHint = styled.p`
+//   margin: 0;
+//   font-size: 12px;
+//   color: var(--text-muted);
+//   line-height: 1.5;
+// `;
 
-const ChatSection = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 200px;
-`;
+// const ChatSection = styled.div`
+//   flex: 1;
+//   display: flex;
+//   flex-direction: column;
+//   min-height: 200px;
+// `;
 
-const ChatLog = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
+// const ChatLog = styled.div`
+//   flex: 1;
+//   overflow-y: auto;
+//   padding: 16px 20px;
+//   display: flex;
+//   flex-direction: column;
+//   gap: 10px;
+// `;
 
-const Bubble = styled.div`
-  align-self: ${p => (p.$user ? 'flex-end' : 'flex-start')};
-  background: ${p => (p.$user ? 'var(--ember)' : 'var(--surface-raised)')};
-  color: ${p => (p.$user ? '#1a0f08' : 'var(--text-primary)')};
-  padding: 9px 13px;
-  border-radius: 12px;
-  max-width: 85%;
-  font-size: 13px;
-  line-height: 1.45;
-  word-wrap: break-word;
-`;
+// const Bubble = styled.div`
+//   align-self: ${p => (p.$user ? 'flex-end' : 'flex-start')};
+//   background: ${p => (p.$user ? 'var(--ember)' : 'var(--surface-raised)')};
+//   color: ${p => (p.$user ? '#1a0f08' : 'var(--text-primary)')};
+//   padding: 9px 13px;
+//   border-radius: 12px;
+//   max-width: 85%;
+//   font-size: 13px;
+//   line-height: 1.45;
+//   word-wrap: break-word;
+// `;
 
-const ChatInputRow = styled.div`
-  padding: 12px 20px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-`;
+// const ChatInputRow = styled.div`
+//   padding: 12px 20px;
+//   border-top: 1px solid var(--border);
+//   display: flex;
+//   gap: 8px;
+//   flex-shrink: 0;
+// `;
 
-const TextInput = styled.input`
-  flex: 1;
-  padding: 9px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-size: 13px;
+// const TextInput = styled.input`
+//   flex: 1;
+//   padding: 9px 12px;
+//   border-radius: 8px;
+//   border: 1px solid var(--border);
+//   background: var(--surface);
+//   color: var(--text-primary);
+//   font-size: 13px;
 
-  &:focus { outline: none; border-color: var(--steel); }
-  &::placeholder { color: var(--text-muted); }
-`;
+//   &:focus { outline: none; border-color: var(--steel); }
+//   &::placeholder { color: var(--text-muted); }
+// `;
 
-const PrimaryBtn = styled.button`
-  padding: 9px 16px;
-  border-radius: 8px;
-  border: none;
-  background: var(--steel);
-  color: #061424;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: filter 0.15s ease;
+// const PrimaryBtn = styled.button`
+//   padding: 9px 16px;
+//   border-radius: 8px;
+//   border: none;
+//   background: var(--steel);
+//   color: #061424;
+//   font-weight: 600;
+//   font-size: 13px;
+//   cursor: pointer;
+//   white-space: nowrap;
+//   transition: filter 0.15s ease;
 
-  &:hover:not(:disabled) { filter: brightness(1.12); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
+//   &:hover:not(:disabled) { filter: brightness(1.12); }
+//   &:disabled { opacity: 0.5; cursor: not-allowed; }
+// `;
 
-const DeployBtn = styled(PrimaryBtn)`
-  background: var(--ember);
-  color: #1a0f08;
-`;
+// const DeployBtn = styled(PrimaryBtn)`
+//   background: var(--ember);
+//   color: #1a0f08;
+// `;
 
-const DangerBtn = styled(PrimaryBtn)`
-  background: transparent;
-  border: 1px solid var(--danger);
-  color: var(--danger);
+// const DangerBtn = styled(PrimaryBtn)`
+//   background: transparent;
+//   border: 1px solid var(--danger);
+//   color: var(--danger);
 
-  &:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); filter: none; }
-`;
+//   &:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); filter: none; }
+// `;
 
-const GhostBtn = styled(PrimaryBtn)`
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
+// const GhostBtn = styled(PrimaryBtn)`
+//   background: transparent;
+//   border: 1px solid var(--border);
+//   color: var(--text-primary);
 
-  &:hover:not(:disabled) { border-color: var(--steel); filter: none; }
-`;
+//   &:hover:not(:disabled) { border-color: var(--steel); filter: none; }
+// `;
 
-const LiveLink = styled.a`
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--mint);
-  word-break: break-all;
-`;
+// const LiveLink = styled.a`
+//   font-family: var(--font-mono);
+//   font-size: 12px;
+//   color: var(--mint);
+//   word-break: break-all;
+// `;
 
-const ImageList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
+// const ImageList = styled.div`
+//   display: flex;
+//   flex-direction: column;
+//   gap: 10px;
+// `;
 
-const ImageRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
+// const ImageRow = styled.div`
+//   display: flex;
+//   align-items: center;
+//   gap: 10px;
+// `;
 
-const Thumb = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-  background: var(--surface);
-`;
+// const Thumb = styled.img`
+//   width: 40px;
+//   height: 40px;
+//   border-radius: 8px;
+//   object-fit: cover;
+//   border: 1px solid var(--border);
+//   flex-shrink: 0;
+//   background: var(--surface);
+// `;
 
-const ImageLabel = styled.span`
-  flex: 1;
-  font-size: 12px;
-  color: var(--text-primary);
-`;
+// const ImageLabel = styled.span`
+//   flex: 1;
+//   font-size: 12px;
+//   color: var(--text-primary);
+// `;
 
-const UploadLabel = styled.label`
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--steel-soft);
-  color: var(--steel);
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  white-space: nowrap;
+// const UploadLabel = styled.label`
+//   font-size: 11px;
+//   font-weight: 600;
+//   background: var(--steel-soft);
+//   color: var(--steel);
+//   border-radius: 6px;
+//   padding: 6px 10px;
+//   cursor: pointer;
+//   white-space: nowrap;
 
-  input { display: none; }
+//   input { display: none; }
 
-  &:hover { filter: brightness(1.2); }
-`;
+//   &:hover { filter: brightness(1.2); }
+// `;
+
 
 export default function Editor({
-  html, chat, message, setMessage, handleEdit, editing,
-  handleDownload,
-  slug, setSlug, deployedUrl, deploying, handleDeploy,
-  manageSlug, setManageSlug, manageToken, setManageToken, deletingSite, handleDeleteSite,
-  imageSlots, uploadingSlot, onImageUpload,
+  files
 }) {
+  const previewHtml = assemblePreviewHTML(files);
+  console.log("ASSEMBLED PREVIEW:", previewHtml);
   return (
     <Layout>
       <PreviewPane>
-        <PreviewFrame srcDoc={html} title="Portfolio Preview" />
+        <PreviewFrame srcDoc={assemblePreviewHTML(files)} title="Portfolio Preview" />
       </PreviewPane>
 
-      <Sidebar>
+      {/* <Sidebar>
         <ChatSection>
           <Section>
             <SectionTitle>&#9998; Edit</SectionTitle>
@@ -305,7 +304,7 @@ export default function Editor({
             {deletingSite ? 'Deleting...' : 'Delete portfolio'}
           </DangerBtn>
         </Section>
-      </Sidebar>
+      </Sidebar> */}
     </Layout>
   );
 }
