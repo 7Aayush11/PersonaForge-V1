@@ -1,4 +1,4 @@
-export function assemblePreviewHTML(files) {
+export function assemblePreviewHTML(files, blobPathMapOut) {
   let pkg = {};
   try {
     pkg = JSON.parse(files["package.json"] || "{}");
@@ -91,6 +91,7 @@ export function assemblePreviewHTML(files) {
       });
 
       blobUrls[path] = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+      if(blobPathMapOut) blobPathMapOut[blobUrls[path]] = path;
       pending.delete(path);
       progress = true;
     });
@@ -98,6 +99,7 @@ export function assemblePreviewHTML(files) {
 
   pending.forEach((path) => {
     blobUrls[path] = URL.createObjectURL(new Blob([transpiled[path]], { type: "text/javascript" }));
+    if (blobPathMapOut) blobPathMapOut[blobUrls[path]] = path;
   });
 
   const css = cssFiles.map((p) => files[p]).join("\n").replace(/@tailwind\s+[^;]+;/g, "");
@@ -105,18 +107,9 @@ export function assemblePreviewHTML(files) {
   const entryPath = files["src/main.jsx"] ? "src/main.jsx" : jsFiles.find((f) => /main\.(jsx|js)$/.test(f));
   const entryURL = blobUrls[entryPath];
 
-  const errorOverlayScript = `<script>
-    function showPreviewError(msg) {
-      document.body.innerHTML = '<pre style="color:#ff6b6b;background:#1a0000;padding:20px;white-space:pre-wrap;font-family:monospace;font-size:13px;margin:0;">Preview error:\\n' + msg + '</pre>';
-    }
-    window.addEventListener('error', (e) => showPreviewError(e.error ? (e.error.stack || e.message) : e.message), true);
-    window.addEventListener('unhandledrejection', (e) => showPreviewError(e.reason ? (e.reason.stack || e.reason.message || e.reason) : 'unknown'));
-  </script>`;
-
   return `<!DOCTYPE html>
 <html>
 <head>
-${errorOverlayScript}
 <meta charset="UTF-8"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script type="importmap">${JSON.stringify({imports})}</script>

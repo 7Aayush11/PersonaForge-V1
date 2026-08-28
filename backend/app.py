@@ -2,8 +2,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import uvicorn, os, shutil, tempfile, secrets
-from models import EditRequest, DeployRequest
+import uvicorn, os, shutil, tempfile, secrets, time
+from models import EditRequest, DeployRequest, HealRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from generate import generate
@@ -11,6 +11,7 @@ from update_code import updateHTML
 from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site, delete_site
 from parse_files import parse_generated_files
 from parser import get_json
+from self_heal import heal_files
 
 
 load_dotenv()
@@ -25,8 +26,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_headers="*",
-    allow_methods="*"
+    allow_headers=["*"],
+    allow_methods=["*"]
 )
 
 @app.post("/edit")
@@ -73,20 +74,33 @@ async def upload(file: UploadFile = File(...)):
             text = get_image_text(temp_path)
         
         text_json = get_json(text)
-        html = generate(text_json)
                 
         try:
+            html = generate(text_json)  
             print(html)
             files = parse_generated_files(html)
         
-        except ValueError as e:
+        except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
             
     finally:
         os.remove(temp_path)
-            
     return {"text": text, "html": html, "files": files}
 
+@app.post("/self-heal")
+async def self_heal(request: HealRequest):
+    if not request.files:
+        return HTTPException(status_code=400, detail="No files were provided")
+    
+    raw = heal_files(request.files, request.error, request.implicated_files)
+    
+    try:
+        fixed_files = parse_generated_files(raw)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=f"Self heal failed {e}")
+    
+    return {"files": fixed_files}
+        
 @app.post("/deploy")
 async def deploy_site(request: DeployRequest):
     if not request.html.strip():

@@ -73,7 +73,7 @@ export default function Home(){
           </div>) : !files ? (
             <Landing handleUpload={handleUpload}/>
           ):(
-            <Editor files={files}/>
+            <Editor files={files} setFiles={setFiles} addToast={addToast}/>
           )
         }
       </div>

@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { assemblePreviewHTML } from '../utils/assemblePreview';
+import { useSelfHealingPreview } from '../hooks/useSelfHealing';
 const Layout = styled.div`
   display: flex;
   flex: 1;
@@ -189,14 +190,15 @@ const PreviewFrame = styled.iframe`
 
 
 export default function Editor({
-  files
+  files, setFiles, addToast
 }) {
-  const previewHtml = assemblePreviewHTML(files);
+  const {previewHtml, isHealing} = useSelfHealingPreview(files, setFiles, addToast)
   console.log("ASSEMBLED PREVIEW:", previewHtml);
   return (
     <Layout>
       <PreviewPane>
-        <PreviewFrame srcDoc={assemblePreviewHTML(files)} title="Portfolio Preview" />
+        <PreviewFrame srcDoc={previewHtml} title="Portfolio Preview" />
+        {isHealing && <div>Fixing an issue automatically…</div>}
       </PreviewPane>
 
       {/* <Sidebar>
