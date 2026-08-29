@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 import dotenv
-import json, os
+import os
 
 dotenv.load_dotenv()
 

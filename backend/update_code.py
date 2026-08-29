@@ -1,23 +1,75 @@
-from openrouter import OpenRouter
-import os
+from google.genai import types
+from google import genai
+import os, re, traceback
+from db import supabase
+from embeddings import embed_one
 
-client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
-def updateHTML(html: str, instruction: str):
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+FILE_PATTERN = re.compile(r"@@FILE:\s*(.+?)\s*\n(.*?)\n@@DESC:\s*(.+?)(?=\n@@FILE:|\Z)", re.DOTALL)
+
+
+def updateHTML(session_id: str, code: str, instruction: str) -> dict:
+    system_instruction = (
+        "You are an expert in web development. Update the given code according to the "
+        "user's instruction, preserving essential attributes. Follw the stack React + Vite + Tailwind CSS + Framer Motion + Lucide React. Use JavaScript, not TypeScript. Use Vite <= 4.2.x, @vitejs/plugin-react 4.2.0, React 18, Tailwind CSS 3.x, and compatible Framer Motion/Lucide React versions. Do not use React Router, Next.js, Bootstrap, Material UI, shadcn/ui, Redux, Three.js, GSAP, or unnecessary dependencies. Every <img> tag must retain its "
+        "data-img-slot and data-img-label attributes unless explicitly instructed otherwise. "
+        "Only return files that actually changed - do not return unchanged files. "
+        "Output each changed file using this exact format, with no other text: "
+        "@@FILE: path/to/filename\\n<the full corrected raw content of that file>\\n"
+        "@@DESC: <a one-line description of what this file does, not what changed>\\n\\n"
+        "Repeat for every changed file. Do not use JSON. Do not use markdown code fences. "
+        "Do not add explanation before, after, or between files.\\n\\n"
+        f"CODE TO UPDATE:\\n{code}"
+    )
+
     try:
-        response = client.chat.send(
-            model="poolside/laguna-s-2.1:free",
-            messages = 
-            [
-                {"role": "system","content": f"You are an expert in web development. Your task is to update the code files: {html} according to specific user requirements, while preserving essential attributes. Follow these steps: 1) Review the user requirements provided separately. 2) Transform the React code ensuring all <img> tags retain their data-img-slot and data-img-label attributes unless explicitly instructed otherwise. 3) The output must be a preserving old files and only replacing the files with updates only. 4) Ensure no additional text, explanations, or extra code blocks are included. Only the code in dictonary format with filename as key and code as value, ensure filename i.e the key is not changed. Verify the final code adheres to user requirements, attribute constraints and ensuring no error's before submission. Only provide json code content, no extra text, no markdowns,only strict coding json. Also keep the generated html along with the updated html"},
-                {"role": "user","content": instruction}
-            ],
-            response_format={
-                "type": "json_object"
-            }
-            )
-    
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=instruction,
+            config=types.GenerateContentConfig(system_instruction=system_instruction),
+        )
     except Exception as e:
-        return {f"Internal Server Error {e}"}
-        
-    
-    return response.choices[0].message.content
+        print("UPDATE_HTML FAILED:")
+        traceback.print_exc()
+        raise
+
+    updated_code = response.text.strip()
+    matches = FILE_PATTERN.findall(updated_code)
+
+    if not matches:
+        raise ValueError("No files found in model output - check it's using the @@FILE: / @@DESC: format")
+
+    files = {}
+    for path, content, description in matches:
+        path = path.strip()
+        content = content.strip()
+        description = description.strip()
+        files[path] = content
+
+        embedding = embed_one(description)
+
+        existing = (
+            supabase.table("file_embeddings")
+            .select("id")
+            .eq("session_id", session_id)
+            .eq("file_path", path)
+            .execute()
+        )
+
+        if existing.data:
+            supabase.table("file_embeddings").update({
+                "content": content,
+                "description": description,
+                "embedding": embedding,
+            }).eq("session_id", session_id).eq("file_path", path).execute()
+        else:
+            supabase.table("file_embeddings").upsert({
+                "session_id": session_id,
+                "file_path": path,
+                "content": content,
+                "description": description,
+                "embedding": embedding,
+            }, on_conflict="session_id,file_path").execute()
+
+    return files

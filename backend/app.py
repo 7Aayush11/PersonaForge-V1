@@ -12,6 +12,7 @@ from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, ge
 from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
+from vector_store import store_file_embeddings, find_best_match
 
 
 load_dotenv()
@@ -29,27 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
     allow_methods=["*"]
 )
-
-@app.post("/edit")
-async def edit(request: EditRequest):
-    if not request.html.strip():
-        raise HTTPException(
-            status_code=400, detail="No HTML found, generate a portfolio first"
-        )
-    
-    if not request.instruction.strip():
-        raise HTTPException(
-            status_code=400, detail="Please provide a valid instruction"
-        )
-    
-    updated_html = updateHTML(request.html, request.instruction)
-    
-    # if not updated_html.strip().startswith("```json"):
-    #             raise HTTPException(
-    #                 status_code=500, detail="Portfolio Generation failed - Invalid html"
-    #             )
-                
-    return {"html": updated_html}
 
 @app.post("/generate")
 async def upload(file: UploadFile = File(...)):
@@ -77,15 +57,28 @@ async def upload(file: UploadFile = File(...)):
                 
         try:
             html = generate(text_json)  
-            print(html)
-            files = parse_generated_files(html)
-        
+            files, files_desc = parse_generated_files(html)
+            store_file_embeddings("abc1234", files, files_desc)
+            
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
             
     finally:
         os.remove(temp_path)
-    return {"text": text, "html": html, "files": files}
+    return {"text": text, "html": html, "files": files, "description": files_desc}
+
+@app.post("/edit")
+async def edit(request: EditRequest):
+    
+    if not request.instruction.strip():
+        raise HTTPException(
+            status_code=400, detail="Please provide a valid instruction"
+        )
+    
+    query_search = find_best_match("abc1234", request.instruction)
+    updated_code = updateHTML("abc1234", query_search['content'], request.instruction)
+
+    return {"search_result": query_search, "updated_code": updated_code}
 
 @app.post("/self-heal")
 async def self_heal(request: HealRequest):

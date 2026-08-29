@@ -1,6 +1,6 @@
 import re
 
-FILE_PATTERN = re.compile(r"@@FILE: \s*(.+?)\s*\n(.*?)(?=\n@@FILE:|\Z)", re.DOTALL)
+FILE_PATTERN = re.compile(r"@@DESCRIPTION: \s*(.+?)\s*\n@@FILE: \s*(.+?)\s*\n(.*?)(?=\n@@DESCRIPTION:|\Z)", re.DOTALL)
 
 def parse_generated_files(raw: str)->dict:
     text = raw.strip()
@@ -17,6 +17,11 @@ def parse_generated_files(raw: str)->dict:
     if not matches:
         raise ValueError("No files found in model output - check it's using the @@FILE: format")
     
-    files = {path.strip(): content.strip() for path, content in matches}
-    return files
+    files = {}
+    files_desc = {}
+    for desc, path, content in matches:
+        files_desc[path.strip()] = desc.strip()
+        files[path.strip()] = content.strip()
+        
+    return files, files_desc
 

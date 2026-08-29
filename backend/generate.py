@@ -35,13 +35,15 @@ def generate(text: str):
 
                 FILES: Include package.json, vite.config.js, tailwind.config.js, postcss.config.js, index.html, src/main.jsx, src/App.jsx, src/index.css, and sensible components inside src/components/. Do not put the entire application into one file.
 
-                OUTPUT: Return ONLY the files using this exact format. Do not use JSON, Markdown code fences, explanations, or text outside the files.
+                OUTPUT: Return ONLY the files and one line description of the file using this exact format. Do not use JSON, Markdown code fences, explanations, or text outside the files.
 
+                @@DESCRIPTION: <one line description of the file>
                 @@FILE: path/to/file <full raw file content>
-
+                
+                @@DESCRIPTION: <one line description of the next file>
                 @@FILE: path/to/next-file <full raw file content>
 
-                Repeat for every file. Every file must start with exactly "@@FILE: " followed by its path. Do not escape the file contents. Do not add anything before the first @@FILE or after the final file.
+                Repeat for every file. Every file must start with exactly "@@FILE: " followed by its path. Do not escape the file contents. Do not add anything before the first @@DESCRIPTION or after the final @@FILE.
 
                 Before outputting, verify that all imports, dependencies, components, Tailwind configuration, and Vite configuration are valid and compatible."""
             }
