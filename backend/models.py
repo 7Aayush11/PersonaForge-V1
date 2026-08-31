@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 class EditRequest(BaseModel):
+    session_id: str
     instruction: str
 
 class DeployRequest(BaseModel):

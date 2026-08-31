@@ -7,12 +7,12 @@ from models import EditRequest, DeployRequest, HealRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from generate import generate
-from update_code import updateHTML
+from update_code import update_files
 from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, get_site, delete_site
 from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
-from vector_store import store_file_embeddings, find_best_match
+from vector_store import store_file_embeddings, find_top_matches, get_all_file_path
 
 
 load_dotenv()
@@ -56,16 +56,18 @@ async def upload(file: UploadFile = File(...)):
         text_json = get_json(text)
                 
         try:
-            html = generate(text_json)  
-            files, files_desc = parse_generated_files(html)
-            store_file_embeddings("abc1234", files, files_desc)
+            code = generate(text_json)  
+            files, files_desc = parse_generated_files(code)
+            session_id = secrets.token_urlsafe(16)
+
+            store_file_embeddings(session_id, files, files_desc)
             
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
             
     finally:
         os.remove(temp_path)
-    return {"text": text, "html": html, "files": files, "description": files_desc}
+    return {"text": text, "code": code, "session_id": session_id, "files": files, "description": files_desc}
 
 @app.post("/edit")
 async def edit(request: EditRequest):
@@ -75,10 +77,17 @@ async def edit(request: EditRequest):
             status_code=400, detail="Please provide a valid instruction"
         )
     
-    query_search = find_best_match("abc1234", request.instruction)
-    updated_code = updateHTML("abc1234", query_search['content'], request.instruction)
+    matches = find_top_matches(request.session_id, request.instruction, top_k=3)
+    if not matches:
+        raise HTTPException(status_code=400, detail="No files found for this session - generate a portfolio first")
 
-    return {"search_result": query_search, "updated_code": updated_code}
+    all_paths = get_all_file_path(request.session_id)
+    try:
+        updated_files = update_files(request.session_id, matches, all_paths, request.instruction)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Edit failed: {e}")
+
+    return {"updated_files": updated_files}
 
 @app.post("/self-heal")
 async def self_heal(request: HealRequest):
@@ -110,12 +119,11 @@ async def deploy_site(request: DeployRequest):
     if is_slug_taken(slug):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
     
-    
-    delete_token = secrets.token_urlsafe(16)
-    save_site(slug, request.html, delete_token)
+    session_id = None
+    save_site(slug, request.html, session_id)
 
     backend_url = os.getenv("BACKEND_URL")
-    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "delete_token": delete_token}
+    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "session_id": session_id}
 
 
 @app.get("/p/{slug}", response_class=HTMLResponse)

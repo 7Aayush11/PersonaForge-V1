@@ -4,13 +4,15 @@ import Footer from "./Footer";
 import Loader from "./Loader";
 import Landing from "./Landing";
 import Header from "./Header";
-import Editor from "./Editor";
+import Preview from "./Preview";
 
 
 export default function Home(){
   const[files, setFiles] = useState(null);
   const[loading, setLoading] = useState(false);
   const[toasts, setToasts] = useState([]);
+  const[session_id, setSession_Id] = useState(null);
+  const[editing, setEditing] = useState(false);
 
   const api = process.env.REACT_APP_API_URL;
 
@@ -44,6 +46,7 @@ export default function Home(){
       }
 
       const data = await res.json();
+      setSession_Id(data.session_id);
       setFiles(data.files);
       console.log("FILES KEYS:", Object.keys(data.files));
       console.log("APP.JSX CONTENT:", data.files["src/App.jsx"]);
@@ -60,6 +63,40 @@ export default function Home(){
     }
   };
 
+  const handleEdit = async (message) => {
+    if (!message.trim() || !files) return;
+
+    // setChat(prev => [...prev, { role: "user", content: message }]);
+    const instruction = message;
+    setEditing(true);
+
+    try {
+      // const { strippedHtml, imageMap } = stripImagesForEdit(html);
+
+      const res = await fetch(`${api}/edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: session_id, instruction }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        addToast({ type: "error", title: "Edit failed", message: err.detail || "Couldn't apply that change." });
+        return;
+      }
+
+      const data = await res.json();
+      // const restoredHtml = restoreImages(data.html, imageMap);
+      console.log(data.updated_files);
+      
+      setFiles({...data.updated_files});
+      // setChat(prev => [...prev, { role: "assistant", content: "Updated your portfolio." }]);
+    } catch (error) {
+      addToast({ type: "error", title: "Edit failed", message: error.message });
+    } finally { 
+      setEditing(false);
+    }
+  };
   const handleReset =()=> setFiles(null)
 
   return(
@@ -73,7 +110,7 @@ export default function Home(){
           </div>) : !files ? (
             <Landing handleUpload={handleUpload}/>
           ):(
-            <Editor files={files} setFiles={setFiles} addToast={addToast}/>
+            <Preview files={files} setFiles={setFiles} addToast={addToast} handleEdit={handleEdit} editing={editing}/>
           )
         }
       </div>
