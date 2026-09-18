@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { assemblePreviewHTML } from "../utils/assemblePreview";
 
 const MAX_HEAL_ATTEMPTS = 2;
-const api = process.env.REACT_APP_API_URL;
+const api = process.env.REACT_APP_API_URL;  
 
 export function useSelfHealingPreview(files, setFiles, addToast) {
   const [isHealing, setIsHealing] = useState(false);
@@ -12,7 +12,10 @@ export function useSelfHealingPreview(files, setFiles, addToast) {
   const blobPathMapRef = useRef({});
 
   blobPathMapRef.current = {};
-  const previewHtml = files ? assemblePreviewHTML(files, blobPathMapRef.current) : "";
+  const previewHtml = useMemo(() => {
+  blobPathMapRef.current = {};
+  return files ? assemblePreviewHTML(files, blobPathMapRef.current) : "";
+}, [files]);
 
   useEffect(() => {
     healAttemptsRef.current = 0;

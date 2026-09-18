@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import styled from "styled-components";
 import { useSelfHealingPreview } from "../hooks/useSelfHealing";
 import EditModal from "./EditModal";
 import DeployPanel from "./DeployPanel";
+
 
 const Layout = styled.div`
   display: flex;
@@ -86,13 +87,10 @@ const DownloadBtn = styled.button`
 
 export default function Preview({
   files, setFiles, addToast, handleEdit, editing,
-  user, onSignIn, session_id,
+  user, onSignIn, session_id, slug, setSlug, deployedUrl, setDeployedUrl, deploying, setDeploying,
 }) {
+  
   const { previewHtml, isHealing } = useSelfHealingPreview(files, setFiles, addToast);
-  const [slug, setSlug] = useState("");
-  const [deployedUrl, setDeployedUrl] = useState("");
-  const [deploying, setDeploying] = useState(false);
-
   const handleDownload = () => {
     const blob = new Blob([previewHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);

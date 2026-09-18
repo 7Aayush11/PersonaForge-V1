@@ -8,7 +8,7 @@ def generate(text: str):
     
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-3.1-flash-lite",
             contents=text,
             config={
                 "system_instruction": """You are an expert frontend developer and UI/UX designer. Build a premium, modern, responsive personal portfolio from the provided information. Make the design feel intentionally created for this person rather than like a generic template.

@@ -16,6 +16,9 @@ export default function Home() {
   const [editing, setEditing] = useState(false);
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [slug, setSlug] = useState("");
+  const [deployedUrl, setDeployedUrl] = useState("");
+  const [deploying, setDeploying] = useState(false);
 
   const api = process.env.REACT_APP_API_URL;
 
@@ -144,6 +147,12 @@ export default function Home() {
             user={user}
             onSignIn={() => setShowAuth(true)}
             session_id={session_id}
+            slug={slug}
+            setSlug={setSlug}
+            deployedUrl={deployedUrl}
+            setDeployedUrl={setDeployedUrl}
+            deploying={deploying}
+            setDeploying={setDeploying}
           />
         )}
       </div>
