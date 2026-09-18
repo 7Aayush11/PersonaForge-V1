@@ -26,7 +26,6 @@ const Spark = styled.span`
   background: var(--ember);
   box-shadow: 0 0 10px var(--ember);
   animation: pulse 2s ease-in-out infinite;
-
   @keyframes pulse {
     0%, 100% { opacity: 0.5; transform: scale(0.9); }
     50% { opacity: 1; transform: scale(1.2); }
@@ -49,7 +48,13 @@ const Tagline = styled.span`
   @media (min-width: 640px) { display: inline; }
 `;
 
-const StartOver = styled.button`
+const Controls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const Btn = styled.button`
   font-size: 13px;
   color: var(--text-muted);
   background: transparent;
@@ -58,14 +63,43 @@ const StartOver = styled.button`
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-
+  white-space: nowrap;
   &:hover {
     color: var(--text-primary);
     border-color: var(--steel);
   }
 `;
 
-export default function Header({ showReset, onReset }) {
+const SignInBtn = styled(Btn)`
+  border-color: var(--ember);
+  color: var(--ember);
+  &:hover {
+    background: rgba(255,107,53,0.1);
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+`;
+
+const Avatar = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ember-soft);
+  border: 1px solid var(--ember);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ember);
+  cursor: default;
+  flex-shrink: 0;
+`;
+
+export default function Header({ showReset, onReset, user, onSignIn, onSignOut }) {
+  const initial = user?.email?.[0]?.toUpperCase() || user?.user_metadata?.full_name?.[0]?.toUpperCase() || "?";
+
   return (
     <Bar>
       <Brand>
@@ -73,7 +107,18 @@ export default function Header({ showReset, onReset }) {
         <Wordmark>PersonaForge</Wordmark>
         <Tagline> || forge your identity</Tagline>
       </Brand>
-      {showReset && <StartOver onClick={onReset}>Start over</StartOver>}
+
+      <Controls>
+        {showReset && <Btn onClick={onReset}>Start over</Btn>}
+        {user ? (
+          <>
+            <Avatar title={user.email}>{initial}</Avatar>
+            <Btn onClick={onSignOut}>Sign out</Btn>
+          </>
+        ) : (
+          <SignInBtn onClick={onSignIn}>Sign in</SignInBtn>
+        )}
+      </Controls>
     </Bar>
   );
 }

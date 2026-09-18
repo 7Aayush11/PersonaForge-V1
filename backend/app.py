@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -12,7 +12,8 @@ from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, ge
 from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
-from vector_store import store_file_embeddings, find_top_matches, get_all_file_path
+from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files
+from auth import get_current_user
 
 
 load_dotenv()
@@ -102,9 +103,16 @@ async def self_heal(request: HealRequest):
         raise HTTPException(status_code=500, detail=f"Self heal failed {e}")
     
     return {"files": fixed_files}
-        
+
+@app.get("/portfolio/{session_id}")
+async def get_portfolio(session_id: str):
+    files = get_session_files(session_id)
+    if not files:
+        raise HTTPException(status_code=404, detail="No portfolio found for this session")
+    return {"session_id": session_id, "files": files}
+
 @app.post("/deploy")
-async def deploy_site(request: DeployRequest):
+async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
     if not request.html.strip():
         raise HTTPException(
             status_code=400, detail="No HTML found, generate a portfolio first"
@@ -119,19 +127,16 @@ async def deploy_site(request: DeployRequest):
     if is_slug_taken(slug):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
     
-    session_id = None
-    save_site(slug, request.html, session_id)
+    delete_token = secrets.token_urlsafe(16)
+    save_site(slug, request.html, delete_token, user_id=user["user_id"])
 
     backend_url = os.getenv("BACKEND_URL")
-    return {"slug": slug, "url": f"{backend_url}/p/{slug}", "session_id": session_id}
+    return {"slug": slug, "url": f"{backend_url}/p/{slug}"}
 
 
-@app.get("/p/{slug}", response_class=HTMLResponse)
-async def serve_site(slug: str):
-    html = get_site(slug.lower())
-    if html is None:
-        raise HTTPException(status_code=404, detail="Page not found")
-    return HTMLResponse(content=html)
+@app.get("/my-portfolios")
+async def my_portfolios(user=Depends(get_current_user)):
+    return {"portfolios": get_site(user["user_id"])}
 
 @app.delete("/p/{slug}")
 async def remove_site(slug: str, token: str):

@@ -21,30 +21,31 @@ def is_slug_taken(slug: str) -> bool:
     result = supabase.table("deployed_sites").select("slug").eq("slug", slug).execute()
     return len(result.data) > 0
 
-def save_site(slug: str, html: str, delete_token: str):
+def save_site(slug: str, html: str, delete_token: str, user_id: str):
     supabase.table("deployed_sites").insert({
         "slug": slug,
         "html_content": html,
         "delete_token": delete_token,
+        "user_id": user_id,
     }).execute()
-    
-def get_site(slug: str):
-    result = supabase.table("deployed_sites").select("html_content").eq("slug", slug).execute()
-    if not result.data:
-        return None
-    
-    return result.data[0]["html_content"]
 
-def delete_site(slug: str, token: str):
-    result = supabase.table("deployed_sites").select("delete_token").eq("slug", slug).execute()
-    
+
+def get_site(user_id: str):
+    result = (
+        supabase.table("deployed_sites")
+        .select("slug, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return result.data
+
+
+def delete_site(slug: str, user_id: str):
+    result = supabase.table("deployed_sites").select("user_id").eq("slug", slug).execute()
     if not result.data:
-        return "Not Found"
-    
-    stored_token = result.data[0]["delete_token"]
-    
-    if not stored_token or stored_token!=token:
-        return "Invalid token"
-    
+        return "not_found"
+    if result.data[0]["user_id"] != user_id:
+        return "forbidden"
     supabase.table("deployed_sites").delete().eq("slug", slug).execute()
-    return "Your portfolio is successfully deleted"
+    return "deleted"
