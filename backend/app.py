@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Header
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import uvicorn, os, shutil, tempfile, secrets, time
-from models import EditRequest, DeployRequest, HealRequest
+import uvicorn, os, shutil, tempfile, secrets, traceback
+from models import EditRequest, DeployRequest, HealRequest, CreatePortfolioRequest, UpdateDeployStatusRequest
 from pdf_extract import get_pdf_text
 from image_extract import get_image_text
 from generate import generate
@@ -14,6 +14,8 @@ from parser import get_json
 from self_heal import heal_files
 from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files
 from auth import get_current_user
+from portfolio_store import create_portfolio, get_portfolios_for_user, set_deploy_status, delete_portfolio
+from db import supabase
 
 
 load_dotenv()
@@ -33,7 +35,7 @@ app.add_middleware(
 )
 
 @app.post("/generate")
-async def upload(file: UploadFile = File(...)):
+async def upload(file: UploadFile = File(...), authorization: str = Header(None)):
     allowed = ["application/pdf", "image/jpeg", "image/png"]
     
     if file.content_type not in allowed:
@@ -57,13 +59,22 @@ async def upload(file: UploadFile = File(...)):
         text_json = get_json(text)
                 
         try:
-            code = generate(text_json)  
+            code = generate(text_json)
             files, files_desc = parse_generated_files(code)
             session_id = secrets.token_urlsafe(16)
-
             store_file_embeddings(session_id, files, files_desc)
-            
+
+            if authorization and authorization.startswith("Bearer "):
+                try:
+                    user = get_current_user(authorization)
+                    create_portfolio(user["user_id"], session_id)
+                except Exception as e:
+                    print(f"Portfolio record creation skipped (anonymous or auth error): {e}")
+
+        except HTTPException:
+            raise  # re-raise FastAPI HTTP exceptions unchanged
         except Exception as e:
+            traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
             
     finally:
@@ -127,10 +138,15 @@ async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
     if is_slug_taken(slug):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
     
-    delete_token = secrets.token_urlsafe(16)
-    save_site(slug, request.html, delete_token, user_id=user["user_id"])
+    save_site(slug, request.html, request.session_id, user_id=user["user_id"])
+    
+    supabase.table("deployed_sites").update({"session_id": request.session_id}).eq("slug", slug).execute()
+    portfolio = supabase.table("portfolios").select("portfolio_id").eq("session_id", request.session_id).eq("user_id", user["user_id"]).execute()
+    if portfolio.data:
+        set_deploy_status(portfolio.data[0]["portfolio_id"], user["user_id"], True, slug)
 
     backend_url = os.getenv("BACKEND_URL")
+    
     return {"slug": slug, "url": f"{backend_url}/p/{slug}"}
 
 
@@ -148,5 +164,35 @@ async def remove_site(slug: str, token: str):
         raise HTTPException(status_code=403, detail= "Invalid token, please use correct token")
     
     return {"message": "Portfolio deleted successfully"}
+
+@app.post("/portfolios")
+async def create_portfolio_route(request: CreatePortfolioRequest, user=Depends(get_current_user)):
+    portfolio = create_portfolio(user["user_id"], request.session_id)
+    if not portfolio:
+        raise HTTPException(status_code=500, detail="Could not create portfolio record")
+    return {"portfolio": portfolio}
+
+
+@app.get("/portfolios")
+async def list_portfolios(user=Depends(get_current_user)):
+    portfolios = get_portfolios_for_user(user["user_id"])
+    return {"portfolios": portfolios}
+
+
+@app.patch("/portfolios/deploy-status")
+async def update_deploy_status(request: UpdateDeployStatusRequest, user=Depends(get_current_user)):
+    updated = set_deploy_status(request.portfolio_id, user["user_id"], request.deploy_status, request.slug)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Portfolio not found or not yours")
+    return {"portfolio": updated}
+
+
+@app.delete("/portfolios/{portfolio_id}")
+async def delete_portfolio_route(portfolio_id: str, user=Depends(get_current_user)):
+    session_id = delete_portfolio(portfolio_id, user["user_id"])
+    if session_id is None:
+        raise HTTPException(status_code=404, detail="Portfolio not found or not yours")
+    return {"message": "Portfolio and all associated data deleted"}
+
 if __name__ == "__main__":
     uvicorn.run(app, port=8000, host="0.0.0.0")

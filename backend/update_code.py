@@ -61,7 +61,7 @@ def update_files(session_id: str, matches: list, all_paths: list, instruction: s
 
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash-lite",
+            model="gemini-3.1-flash-lite",
             contents=instruction,
             config=types.GenerateContentConfig(system_instruction=system_instruction),
         )

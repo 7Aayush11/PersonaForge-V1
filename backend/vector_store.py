@@ -9,20 +9,18 @@ def store_file_embeddings(session_id: str, files: dict, file_desc: dict):
     descriptions = [file_desc.get(p, "") for p in paths]
     
     vectors = embed_many(descriptions)
-    print(vectors)
     rows = [{
         "session_id": session_id,
         "file_path": path,
         "content": files[path],
-        "description": file_desc[path],
+        "description": file_desc.get(path, ""),
         "embedding": vector
     } for path, vector in zip(paths, vectors)]
     
-    supabase.table("file_embeddings").upsert(rows, on_conflict="session_id, file_path").execute()
+    supabase.table("file_embeddings").upsert(rows, on_conflict="session_id,file_path").execute()
     
 def find_top_matches(session_id: str, instruction: str, top_k: int=3):
     query_vector = np.array(embed_one(instruction))
-    print(query_vector)
     result = (supabase.table("file_embeddings").select("file_path, content, embedding").eq("session_id", session_id).execute())
     
     rows = result.data

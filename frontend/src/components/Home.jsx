@@ -7,8 +7,10 @@ import Header from "./Header";
 import Preview from "./Preview";
 import { supabase } from "../supabaseClient";
 import AuthModal from "./AuthModal";
+import Dashboard from "./Dashboard";
 
 export default function Home() {
+  const [view, setView] = useState("home");
   const [files, setFiles] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState([]);
@@ -120,6 +122,24 @@ export default function Home() {
     sessionStorage.removeItem("personaforge_session_id");
   };
 
+  const handleEditPortfolio = async (session_id) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}/portfolio/${session_id}`);
+      const data = await res.json();
+      if (data?.files) {
+        setSession_Id(session_id);
+        sessionStorage.setItem("personaforge_session_id", session_id);
+        setFiles(data.files);
+        setView("editor");
+      }
+    } catch (err) {
+      addToast({ type: "error", title: "Couldn't load portfolio", message: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Header
@@ -128,6 +148,7 @@ export default function Home() {
         user={user}
         onSignIn={() => setShowAuth(true)}
         onSignOut={handleSignOut}
+        onDashboard = {()=>setView("dashboard")}
       />
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
@@ -135,9 +156,14 @@ export default function Home() {
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Loader />
           </div>
-        ) : !files ? (
-          <Landing handleUpload={handleUpload} />
-        ) : (
+        ) : view === "dashboard" ? (
+          <Dashboard
+            user={user}
+            onNewPortfolio={() => setView("home")}
+            onEditPortfolio={handleEditPortfolio}
+            addToast={addToast}
+          />
+        ) : files ? (
           <Preview
             files={files}
             setFiles={setFiles}
@@ -154,6 +180,8 @@ export default function Home() {
             deploying={deploying}
             setDeploying={setDeploying}
           />
+        ) : (
+          <Landing handleUpload={handleUpload} />
         )}
       </div>
 

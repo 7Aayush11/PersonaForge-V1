@@ -97,7 +97,7 @@ const Avatar = styled.div`
   flex-shrink: 0;
 `;
 
-export default function Header({ showReset, onReset, user, onSignIn, onSignOut }) {
+export default function Header({ showReset, onReset, user, onSignIn, onSignOut, onDashboard }) {
   const initial = user?.email?.[0]?.toUpperCase() || user?.user_metadata?.full_name?.[0]?.toUpperCase() || "?";
 
   return (
@@ -112,6 +112,7 @@ export default function Header({ showReset, onReset, user, onSignIn, onSignOut }
         {showReset && <Btn onClick={onReset}>Start over</Btn>}
         {user ? (
           <>
+            <Btn onClick={onDashboard}>Dashboard</Btn>
             <Avatar title={user.email}>{initial}</Avatar>
             <Btn onClick={onSignOut}>Sign out</Btn>
           </>

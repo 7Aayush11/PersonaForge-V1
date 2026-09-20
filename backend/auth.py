@@ -4,7 +4,7 @@ from jwt import PyJWKClient, PyJWTError
 from fastapi import Header, HTTPException
 from functools import lru_cache
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")  # e.g. https://abcd.supabase.co
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 
 if not SUPABASE_URL:
     raise RuntimeError("SUPABASE_URL env var is not set")
@@ -39,5 +39,4 @@ def get_current_user(authorization: str = Header(None)):
     except jwt.InvalidAudienceError:
         raise HTTPException(status_code=401, detail="Invalid token audience")
     except PyJWTError as e:
-        print(f"JWT decode failed: {type(e).__name__}: {e}")
         raise HTTPException(status_code=401, detail=f"Invalid session: {e}")

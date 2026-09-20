@@ -8,7 +8,7 @@ def generate(text: str):
     
     try:
         response = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
+            model="gemini-3.5-flash",
             contents=text,
             config={
                 "system_instruction": """You are an expert frontend developer and UI/UX designer. Build a premium, modern, responsive personal portfolio from the provided information. Make the design feel intentionally created for this person rather than like a generic template.
@@ -52,7 +52,6 @@ def generate(text: str):
         return response.text
     
     except Exception as e:
-        print("GENERATE FUNCTION FAILED:")
         traceback.print_exc()
         for attr in ("response", "status_code", "body", "message", "args"):
             if hasattr(e, attr):
