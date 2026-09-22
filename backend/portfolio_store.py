@@ -7,6 +7,7 @@ def create_portfolio(user_id: str, session_id: str) -> dict:
         "session_id": session_id,
         "deploy_status": False,
     }).execute()
+    print(result)
     return result.data[0] if result.data else {}
 
 
@@ -60,7 +61,7 @@ def delete_portfolio(portfolio_id: str, user_id: str):
     if not p.data:
         return None
 
-    session_id = p.data["session_id"]
+    session_id = p.data[0]["session_id"]
 
     supabase.table("deployed_sites").delete().eq("session_id", session_id).execute()
     

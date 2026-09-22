@@ -1,6 +1,6 @@
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-import os
+import os, traceback
 
 llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"), model="openai/gpt-oss-120b")
 
@@ -21,8 +21,7 @@ def heal_files(files: dict, error: str, implicated_files: list) -> str:
             "error": error,
             "implicated": implicated_text
         })
-        
         return response.content
-    
     except Exception as e:
-        return f"An Error occurred {e}"
+        traceback.print_exc()
+        raise

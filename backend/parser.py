@@ -1,10 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-import dotenv
-import os
+import dotenv, os, traceback
 
 dotenv.load_dotenv()
-
 
 llm = ChatGroq(model="openai/gpt-oss-120b", api_key=os.getenv("GROQ_API_KEY"))
 prompt = ChatPromptTemplate.from_messages([
@@ -12,14 +10,11 @@ prompt = ChatPromptTemplate.from_messages([
     ("user", "{text}")
 ])
 
-def get_json(text: str):
+def get_json(text: str) -> str:
     chain = prompt | llm
-    
     try:
-        response = chain.invoke(
-            {"text": text}
-        )
-        
+        response = chain.invoke({"text": text})
         return response.content
     except Exception as e:
-        return (f"An error occurred {e}")
+        traceback.print_exc()
+        raise

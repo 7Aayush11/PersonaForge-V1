@@ -6,7 +6,7 @@ dotenv.load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def get_image_text(file_path: str):
-    model = genai.GenerativeModel("gemini-3.5-flash")
+    model = genai.GenerativeModel("gemini-3.6-flash")
     image = Image.open(file_path)
     response = model.generate_content([
         "Extract all the raw text from the given resume image, Return only raw text, No formatting", image

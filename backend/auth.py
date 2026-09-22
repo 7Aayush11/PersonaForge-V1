@@ -40,3 +40,17 @@ def get_current_user(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid token audience")
     except PyJWTError as e:
         raise HTTPException(status_code=401, detail=f"Invalid session: {e}")
+    
+def verify_token(token: str) -> dict | None:
+    try:
+        signing_key = _jwks_client().get_signing_key_from_jwt(token)
+        payload = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["ES256", "RS256", "HS256"],
+            audience="authenticated",
+            options={"verify_exp": True},
+        )
+        return {"user_id": payload["sub"], "email": payload.get("email")}
+    except Exception:
+        return None

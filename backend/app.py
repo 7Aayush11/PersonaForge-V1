@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
 from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files
-from auth import get_current_user
+from auth import get_current_user, verify_token
 from portfolio_store import create_portfolio, get_portfolios_for_user, set_deploy_status, delete_portfolio
 from db import supabase
 
@@ -33,52 +33,59 @@ app.add_middleware(
     allow_headers=["*"],
     allow_methods=["*"]
 )
-
 @app.post("/generate")
-async def upload(file: UploadFile = File(...), authorization: str = Header(None)):
+async def upload(request: Request, file: UploadFile = File(...)):
     allowed = ["application/pdf", "image/jpeg", "image/png"]
-    
+
     if file.content_type not in allowed:
-        raise HTTPException(
-            status_code=400, detail="Invalid File Type"
-        )
-    
+        raise HTTPException(status_code=400, detail="Invalid File Type")
+
     with tempfile.NamedTemporaryFile(
-        delete=False, 
+        delete=False,
         suffix=os.path.splitext(file.filename)[1]
     ) as tmp:
         shutil.copyfileobj(file.file, tmp)
         temp_path = tmp.name
-    
+
     try:
-        if file.content_type=="application/pdf":
+        if file.content_type == "application/pdf":
             text = get_pdf_text(temp_path)
         else:
             text = get_image_text(temp_path)
-        
+
         text_json = get_json(text)
-                
+
         try:
             code = generate(text_json)
             files, files_desc = parse_generated_files(code)
             session_id = secrets.token_urlsafe(16)
             store_file_embeddings(session_id, files, files_desc)
 
+            # Read header directly from request — works correctly with multipart/form-data
+            authorization = request.headers.get("authorization") or request.headers.get("Authorization")
+            print(f"Authorization header present: {bool(authorization)}")
+
             if authorization and authorization.startswith("Bearer "):
-                try:
-                    user = get_current_user(authorization)
-                    create_portfolio(user["user_id"], session_id)
-                except Exception as e:
-                    print(f"Portfolio record creation skipped (anonymous or auth error): {e}")
+                token = authorization.split(" ", 1)[1]
+                user = verify_token(token)
+                print(f"Token verified: {bool(user)}")
+                if user:
+                    try:
+                        create_portfolio(user["user_id"], session_id)
+                        print(f"Portfolio created for user {user['user_id']}")
+                    except Exception as e:
+                        print(f"Portfolio record creation failed: {e}")
+                        traceback.print_exc()
 
         except HTTPException:
-            raise  # re-raise FastAPI HTTP exceptions unchanged
+            raise
         except Exception as e:
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
-            
+
     finally:
         os.remove(temp_path)
+
     return {"text": text, "code": code, "session_id": session_id, "files": files, "description": files_desc}
 
 @app.post("/edit")
@@ -152,17 +159,15 @@ async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
 
 @app.get("/my-portfolios")
 async def my_portfolios(user=Depends(get_current_user)):
-    return {"portfolios": get_site(user["user_id"])}
+    return {"portfolios": get_portfolios_for_user(user["user_id"])}
 
 @app.delete("/p/{slug}")
-async def remove_site(slug: str, token: str):
-    result = delete_site(slug.lower(), token)
-    
-    if result == "Not Found":
-        raise HTTPException(status_code=404, detail= "Page not found")
-    if result == "Invalid token":
-        raise HTTPException(status_code=403, detail= "Invalid token, please use correct token")
-    
+async def remove_site(slug: str, user=Depends(get_current_user)):
+    result = delete_site(slug.lower(), user["user_id"])
+    if result == "not_found":
+        raise HTTPException(status_code=404, detail="Page not found")
+    if result == "forbidden":
+        raise HTTPException(status_code=403, detail="You don't own this portfolio")
     return {"message": "Portfolio deleted successfully"}
 
 @app.post("/portfolios")

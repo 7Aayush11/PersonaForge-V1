@@ -1,6 +1,6 @@
 import re
 
-FILE_PATTERN = re.compile(r"@@DESCRIPTION: \s*(.+?)\s*\n@@FILE: \s*(.+?)\s*\n(.*?)(?=\n@@DESCRIPTION:|\Z)", re.DOTALL)
+FILE_PATTERN = re.compile(r"@@DESCRIPTION:\s*(.+?)\s*\n@@FILE: \s*(.+?)\s*\n(.*?)(?=\n@@DESCRIPTION:|\Z)", re.DOTALL)
 
 def parse_generated_files(raw: str)->dict:
     text = raw.strip()
