@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { supabase } from "../supabaseClient";
 
