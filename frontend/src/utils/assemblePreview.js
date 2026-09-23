@@ -78,7 +78,7 @@ export function assemblePreviewHTML(files, blobPathMapOut) {
   let progress = true;
   while (pending.size > 0 && progress) {
     progress = false;
-    Array.from(pending).forEach((path) => {
+    for (const path of Array.from(pending)) {
       const deps = getLocalDeps(path);
       const ready = Array.from(deps).every((d) => blobUrls[d] !== undefined);
       if (!ready) return;
@@ -94,7 +94,7 @@ export function assemblePreviewHTML(files, blobPathMapOut) {
       if(blobPathMapOut) blobPathMapOut[blobUrls[path]] = path;
       pending.delete(path);
       progress = true;
-    });
+    };
   }
 
   pending.forEach((path) => {
