@@ -22,17 +22,21 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = [
-    os.getenv("CORS")
-]
+raw = os.getenv("CORS")
+origins = [o.strip() for o in raw.split(",") if o.strip()]
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_headers=["*"],
-    allow_methods=["*"]
+    allow_methods=["*"],
+    expose_headers=["*"]
 )
+
+MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
+
 @app.post("/generate")
 async def upload(request: Request, file: UploadFile = File(...)):
     allowed = ["application/pdf", "image/jpeg", "image/png"]
@@ -48,45 +52,86 @@ async def upload(request: Request, file: UploadFile = File(...)):
         temp_path = tmp.name
 
     try:
-        if file.content_type == "application/pdf":
-            text = get_pdf_text(temp_path)
-        else:
-            text = get_image_text(temp_path)
+        if MOCK_MODE:
+            from mock_data import load_mock_data, MOCK_SESSION_ID
+            from db import supabase
 
-        text_json = get_json(text)
+            print("MOCK MODE: loading data from CSV, skipping generation and embedding API")
+            files, files_desc, embedding_rows = load_mock_data()
+            text = "mock-resume-text"
+            code = "mock-raw-output"
+            session_id = secrets.token_urlsafe(16)
+
+            # Insert pre-computed embeddings directly — no API call needed
+            rows_to_insert = [
+                {
+                    "session_id": session_id,
+                    "file_path": r["file_path"],
+                    "content": r["content"],
+                    "description": r["description"],
+                    "embedding": r["embedding"],
+                }
+                for r in embedding_rows
+            ]
+
+            try:
+                supabase.table("file_embeddings").insert(rows_to_insert).execute()
+                print(f"Mock embeddings inserted for session {session_id}")
+            except Exception as e:
+                print(f"Mock embedding insert failed: {e}")
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"Mock setup failed: {e}")
+
+        else:
+            if file.content_type == "application/pdf":
+                text = get_pdf_text(temp_path)
+            else:
+                text = get_image_text(temp_path)
+
+            text_json = get_json(text)
+
+            try:
+                code = generate(text_json)
+                files, files_desc = parse_generated_files(code)
+            except HTTPException:
+                raise
+            except Exception as e:
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"Generation failed: {e}")
+
+        session_id = secrets.token_urlsafe(16)
 
         try:
-            code = generate(text_json)
-            files, files_desc = parse_generated_files(code)
-            session_id = secrets.token_urlsafe(16)
             store_file_embeddings(session_id, files, files_desc)
-
-            # Read header directly from request — works correctly with multipart/form-data
-            authorization = request.headers.get("authorization") or request.headers.get("Authorization")
-            print(f"Authorization header present: {bool(authorization)}")
-
-            if authorization and authorization.startswith("Bearer "):
-                token = authorization.split(" ", 1)[1]
-                user = verify_token(token)
-                print(f"Token verified: {bool(user)}")
-                if user:
-                    try:
-                        create_portfolio(user["user_id"], session_id)
-                        print(f"Portfolio created for user {user['user_id']}")
-                    except Exception as e:
-                        print(f"Portfolio record creation failed: {e}")
-                        traceback.print_exc()
-
-        except HTTPException:
-            raise
         except Exception as e:
+            print(f"Embedding storage failed: {e}")
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {e}")
+
+        authorization = request.headers.get("authorization") or request.headers.get("Authorization")
+        print(f"Authorization header present: {authorization}")
+
+        if authorization and authorization.startswith("Bearer "):
+            token = authorization.split(" ", 1)[1]
+            user = verify_token(token)
+            print(f"Token verified: {bool(user)}, user: {user}")
+            if user:
+                try:
+                    portfolio = create_portfolio(user["user_id"], session_id)
+                    print(f"Portfolio created: {portfolio}")
+                except Exception as e:
+                    print(f"Portfolio record creation failed: {e}")
+                    traceback.print_exc()
 
     finally:
         os.remove(temp_path)
 
-    return {"text": text, "code": code, "session_id": session_id, "files": files, "description": files_desc}
+    return {
+        "text": text,
+        "session_id": session_id,
+        "files": files,
+        "description": files_desc
+    }
 
 @app.post("/edit")
 async def edit(request: EditRequest):

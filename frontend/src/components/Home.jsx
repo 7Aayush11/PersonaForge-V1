@@ -46,6 +46,7 @@ export default function Home() {
     }
 
     return () => listener.subscription.unsubscribe();
+    // eslint-disable-next-line
   }, []);
 
   const addToast = (toast) => {
@@ -66,16 +67,34 @@ export default function Home() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 1. Read the current session and pull the access_token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     const formData = new FormData();
     formData.append("file", file);
 
     setLoading(true);
     try {
-      const res = await fetch(`${api}/generate`, { method: "POST", body: formData });
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${api}/generate`, {
+        method: "POST",
+        headers,
+        body: formData,
+        // DO NOT set Content-Type — the browser adds multipart boundary
+      });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        addToast({ type: "error", title: "Generation failed", message: err.detail || "Something went wrong reading that file." });
+        addToast({
+          type: "error",
+          title: "Generation failed",
+          message: err.detail || "Something went wrong reading that file.",
+        });
         return;
       }
 
