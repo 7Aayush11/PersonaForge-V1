@@ -1,4 +1,4 @@
-import re, secrets
+import re
 from db import supabase
 
 RESERVED_SLUG = ["www", "api", "admin", "generate", "deploy", "mail", "edit", "p", "help", "support", "about", "contact", "test", "staging", "dev", "personaforge"]
