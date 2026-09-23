@@ -262,12 +262,7 @@ export default function Dashboard({ user, onNewPortfolio, onEditPortfolio, addTo
   const [loading, setLoading] = useState(true);
   const backendUrl = process.env.REACT_APP_API_URL;
 
-  useEffect(() => {
-    if (!user) return;
-    fetchPortfolios();
-  }, [user]);
-
-  const fetchPortfolios = async () => {
+  const fetchPortfolios = useCallback(async () => {
     setLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -284,7 +279,12 @@ export default function Dashboard({ user, onNewPortfolio, onEditPortfolio, addTo
     } finally {
       setLoading(false);
     }
-  };
+  }, [backendUrl, addToast]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchPortfolios();
+  }, [user, fetchPortfolios]);
 
   const handleDelete = (portfolio_id) => {
     setPortfolios(prev => prev.filter(p => p.portfolio_id !== portfolio_id));
