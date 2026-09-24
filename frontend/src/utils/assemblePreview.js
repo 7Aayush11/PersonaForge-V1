@@ -81,7 +81,7 @@ export function assemblePreviewHTML(files, blobPathMapOut) {
     for (const path of Array.from(pending)) {
       const deps = getLocalDeps(path);
       const ready = Array.from(deps).every((d) => blobUrls[d] !== undefined);
-      if (!ready) return;
+      if (!ready) continue;
 
       const code = transpiled[path].replace(relRegex(), (full, rel) => {
         const resolved = resolvePath(path, rel);
