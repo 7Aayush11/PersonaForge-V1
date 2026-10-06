@@ -54,3 +54,19 @@ def get_session_files(session_id: str) -> dict:
             .execute()
         )
     return {row["file_path"]: row["content"] for row in result.data}
+
+def store_assembled_html(session_id: str, html: str):
+    supabase.table("portfolios").upsert({
+        "session_id": session_id,
+        "assembled_html": html,
+    }, on_conflict="session_id").execute()
+
+
+def get_assembled_html(session_id: str) -> str | None:
+    result = (
+        supabase.table("portfolios")
+        .select("assembled_html")
+        .eq("session_id", session_id)
+        .execute()
+    )
+    return result.data[0]["assembled_html"] if result.data else None

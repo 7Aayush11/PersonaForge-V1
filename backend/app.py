@@ -12,10 +12,11 @@ from deploy import is_slug_taken, save_site, clean_slug_input, validate_slug, ge
 from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
-from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files
+from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files, get_assembled_html, store_assembled_html
 from auth import get_current_user, verify_token
 from portfolio_store import create_portfolio, get_portfolios_for_user, set_deploy_status, delete_portfolio
 from db import supabase
+from assemble import assemble_html
 
 
 load_dotenv()
@@ -108,7 +109,15 @@ async def upload(request: Request, file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {e}")
 
         authorization = request.headers.get("authorization") or request.headers.get("Authorization")
-        print(f"Authorization header present: {authorization}")
+        
+        try:
+            assembled_html = assemble_html(files)
+            store_assembled_html(session_id, assembled_html)
+            print(f"Assembled HTML stored for session {session_id}")
+        except Exception as e:
+            print(f"HTML assembly/storage failed (non-fatal): {e}")
+            traceback.print_exc()
+        
 
         if authorization and authorization.startswith("Bearer "):
             token = authorization.split(" ", 1)[1]
@@ -134,21 +143,25 @@ async def upload(request: Request, file: UploadFile = File(...)):
 
 @app.post("/edit")
 async def edit(request: EditRequest):
-    
     if not request.instruction.strip():
-        raise HTTPException(
-            status_code=400, detail="Please provide a valid instruction"
-        )
-    
+        raise HTTPException(status_code=400, detail="Please provide a valid instruction")
+
     matches = find_top_matches(request.session_id, request.instruction, top_k=3)
     if not matches:
-        raise HTTPException(status_code=400, detail="No files found for this session - generate a portfolio first")
+        raise HTTPException(status_code=400, detail="No files found for this session")
 
     all_paths = get_all_file_path(request.session_id)
     try:
         updated_files = update_files(request.session_id, matches, all_paths, request.instruction)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Edit failed: {e}")
+
+    # Re-assemble and store updated HTML
+    try:
+        assembled_html = assemble_html(updated_files)
+        store_assembled_html(request.session_id, assembled_html)
+    except Exception as e:
+        print(f"Re-assembly after edit failed (non-fatal): {e}")
 
     return {"updated_files": updated_files}
 
@@ -175,11 +188,6 @@ async def get_portfolio(session_id: str):
 
 @app.post("/deploy")
 async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
-    if not request.html.strip():
-        raise HTTPException(
-            status_code=400, detail="No HTML found, generate a portfolio first"
-        )
-
     slug = clean_slug_input(request.slug)
 
     error = validate_slug(slug)
@@ -188,16 +196,19 @@ async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
 
     if is_slug_taken(slug):
         raise HTTPException(status_code=409, detail="This name is already taken. Choose another.")
-    
-    save_site(slug, request.html, request.session_id, user_id=user["user_id"])
-    
-    supabase.table("deployed_sites").update({"session_id": request.session_id}).eq("slug", slug).execute()
+
+    # Pull the pre-assembled HTML from the database instead of from the frontend
+    html = get_assembled_html(request.session_id)
+    if not html:
+        raise HTTPException(status_code=400, detail="No assembled HTML found for this session. Generate a portfolio first.")
+
+    save_site(slug, html, request.session_id, user_id=user["user_id"])
+
     portfolio = supabase.table("portfolios").select("portfolio_id").eq("session_id", request.session_id).eq("user_id", user["user_id"]).execute()
     if portfolio.data:
         set_deploy_status(portfolio.data[0]["portfolio_id"], user["user_id"], True, slug)
 
     backend_url = os.getenv("BACKEND_URL")
-    
     return {"slug": slug, "url": f"{backend_url}/p/{slug}"}
 
 

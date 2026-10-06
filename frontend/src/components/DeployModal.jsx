@@ -146,15 +146,14 @@ export default function DeployModal({ files, user, onSignIn, onClose, onDeployed
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const html = assemblePreviewHTML(files);
 
-      const res = await fetch(`${backendBase}/deploy`, {
+      const res = await fetch(`${api}/deploy`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ html, slug: slug.trim(), session_id }),
+        body: JSON.stringify({ slug: slug.trim(), session_id }),
       });
 
       const data = await res.json();

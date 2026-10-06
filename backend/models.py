@@ -6,7 +6,6 @@ class EditRequest(BaseModel):
 
 class DeployRequest(BaseModel):
     slug: str
-    html: str
     session_id: str
     
 class HealRequest(BaseModel):
