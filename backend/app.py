@@ -52,6 +52,8 @@ async def upload(request: Request, file: UploadFile = File(...)):
         temp_path = tmp.name
 
     try:
+        
+        session_id = secrets.token_urlsafe(16)
         if MOCK_MODE:
             from mock_data import load_mock_data, MOCK_SESSION_ID
             from db import supabase
@@ -60,7 +62,6 @@ async def upload(request: Request, file: UploadFile = File(...)):
             files, files_desc, embedding_rows = load_mock_data()
             text = "mock-resume-text"
             code = "mock-raw-output"
-            session_id = secrets.token_urlsafe(16)
 
             # Insert pre-computed embeddings directly — no API call needed
             rows_to_insert = [
@@ -98,8 +99,6 @@ async def upload(request: Request, file: UploadFile = File(...)):
             except Exception as e:
                 traceback.print_exc()
                 raise HTTPException(status_code=500, detail=f"Generation failed: {e}")
-
-        session_id = secrets.token_urlsafe(16)
 
         try:
             store_file_embeddings(session_id, files, files_desc)
@@ -205,6 +204,13 @@ async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):
 @app.get("/my-portfolios")
 async def my_portfolios(user=Depends(get_current_user)):
     return {"portfolios": get_portfolios_for_user(user["user_id"])}
+
+@app.get("/p/{slug}", response_class=HTMLResponse)
+async def serve_site(slug: str):
+    result = supabase.table("deployed_sites").select("html_content").eq("slug", slug.lower()).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return HTMLResponse(content=result.data[0]["html_content"])
 
 @app.delete("/p/{slug}")
 async def remove_site(slug: str, user=Depends(get_current_user)):
