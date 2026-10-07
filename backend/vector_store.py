@@ -56,7 +56,7 @@ def get_session_files(session_id: str) -> dict:
     return {row["file_path"]: row["content"] for row in result.data}
 
 def store_assembled_html(session_id: str, html: str):
-    supabase.table("portfolios").upsert({
+    supabase.table("portfolio_previews").upsert({
         "session_id": session_id,
         "assembled_html": html,
     }, on_conflict="session_id").execute()
@@ -64,7 +64,7 @@ def store_assembled_html(session_id: str, html: str):
 
 def get_assembled_html(session_id: str) -> str | None:
     result = (
-        supabase.table("portfolios")
+        supabase.table("portfolio_previews")
         .select("assembled_html")
         .eq("session_id", session_id)
         .execute()

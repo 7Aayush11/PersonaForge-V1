@@ -36,9 +36,6 @@ export default function AuthModal({ onClose, addToast }) {
         <button onClick={() => handleOAuth("google")} style={{ padding: 9, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", cursor: "pointer" }}>
           Continue with Google
         </button>
-        <button onClick={() => handleOAuth("github")} style={{ padding: 9, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", cursor: "pointer" }}>
-          Continue with GitHub
-        </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 12 }}>
           <div style={{ flex: 1, height: 1, background: "var(--border)" }} />

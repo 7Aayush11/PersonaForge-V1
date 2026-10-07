@@ -48,9 +48,7 @@ def set_deploy_status(portfolio_id: str, user_id: str, status: bool, slug: str =
     )
     return result.data[0] if result.data else {}
 
-
 def delete_portfolio(portfolio_id: str, user_id: str):
-    
     p = (
         supabase.table("portfolios")
         .select("session_id")
@@ -63,11 +61,8 @@ def delete_portfolio(portfolio_id: str, user_id: str):
 
     session_id = p.data[0]["session_id"]
 
+    supabase.table("portfolio_previews").delete().eq("session_id", session_id).execute()
     supabase.table("deployed_sites").delete().eq("session_id", session_id).execute()
-    
-    
     supabase.table("file_embeddings").delete().eq("session_id", session_id).execute()
-    
-    
     supabase.table("portfolios").delete().eq("portfolio_id", portfolio_id).execute()
     return session_id
