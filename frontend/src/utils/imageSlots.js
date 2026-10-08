@@ -1,3 +1,40 @@
+
+export function extractImageSlotsFromFiles(files) {
+  if (!files || typeof files !== "object") return [];
+
+  const slots = [];
+  const seen = new Set();
+
+  
+  const slotRegex = /<img\b[^>]*?data-img-slot\s*=\s*["']([^"']+)["'][^>]*?>/gs;
+  const labelRegex = /data-img-label\s*=\s*["']([^"']+)["']/;
+  const srcRegex = /\bsrc\s*=\s*["']([^"']+)["']/;
+
+  Object.values(files).forEach((content) => {
+    if (typeof content !== "string") return;
+    let match;
+
+    slotRegex.lastIndex = 0;
+    while ((match = slotRegex.exec(content)) !== null) {
+      const slotId = match[1];
+      if (seen.has(slotId)) continue;
+      seen.add(slotId);
+
+      const tag = match[0];
+      const labelMatch = labelRegex.exec(tag);
+      const srcMatch = srcRegex.exec(tag);
+
+      slots.push({
+        slotId,
+        label: labelMatch ? labelMatch[1] : slotId,
+        src: srcMatch ? srcMatch[1] : "https://placehold.co/38x38?text=?",
+      });
+    }
+  });
+
+  return slots;
+}
+
 export function extractImageSlots(html) {
   if (!html) return [];
   const parser = new DOMParser();
@@ -10,7 +47,6 @@ export function extractImageSlots(html) {
   }));
 }
 
-// Bug fix: slot IDs with hyphens need quotes around the attribute value in the selector
 export function replaceImageSlot(html, slotId, dataUrl) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
@@ -20,7 +56,7 @@ export function replaceImageSlot(html, slotId, dataUrl) {
   return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
 }
 
-export function compressImageFile(file, maxWidth = 800, quality = 0.8) {
+export function compressImageFile(file, maxWidth = 800, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {

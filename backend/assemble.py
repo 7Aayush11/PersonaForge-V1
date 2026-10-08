@@ -2,6 +2,25 @@ import json
 import re
 
 
+def extract_bg_color(css: str) -> str:
+    patterns = [
+        r"body\s*\{[^}]*background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})",
+        r"background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,8})",
+    ]
+    for p in patterns:
+        m = re.search(p, css, re.DOTALL)
+        if m:
+            return m.group(1)
+    return "#0f172a"
+
+
+def extract_text_color(css: str) -> str:
+    m = re.search(r"body\s*\{[^}]*\bcolor\s*:\s*(#[0-9a-fA-F]{3,8})", css, re.DOTALL)
+    if m:
+        return m.group(1)
+    return "#f1f5f9"
+
+
 def assemble_html(files: dict) -> str:
     pkg = {}
     try:
@@ -46,8 +65,12 @@ def assemble_html(files: dict) -> str:
     imports["react/jsx-runtime"] = f"https://esm.sh/react@{react_version}/jsx-runtime"
     imports["react/jsx-dev-runtime"] = f"https://esm.sh/react@{react_version}/jsx-dev-runtime"
 
-    css = "\n".join(files[p] for p in css_files)
-    css = re.sub(r"@tailwind\s+[^;]+;", "", css)
+    raw_css = "\n".join(files[p] for p in css_files)
+    # Remove @tailwind directives — Play CDN handles utilities
+    css = re.sub(r"@tailwind\s+\S+\s*;?", "", raw_css).strip()
+
+    bg_color = extract_bg_color(css)
+    text_color = extract_text_color(css)
 
     def strip_css_imports(code):
         return re.sub(r"import\s+['\"][^'\"]+\.css['\"]\s*;?", "", code)
@@ -77,10 +100,22 @@ def assemble_html(files: dict) -> str:
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+html {{ scroll-behavior: smooth; }}
+body {{
+  background-color: {bg_color};
+  color: {text_color};
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}}
+#root {{ min-height: 100vh; }}
+{css}
+</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <script type="importmap">{import_map_json}</script>
-<style>{css}</style>
 </head>
 <body>
 <div id="root"></div>
@@ -134,7 +169,7 @@ function requireModule(path) {{
     if (specifier.startsWith(".")) {{
       const resolved = resolvePath(path, specifier);
       if (!resolved) {{
-        console.warn("Could not resolve local import:", specifier, "from", path);
+        console.warn("Could not resolve:", specifier, "from", path);
         return {{}};
       }}
       return requireModule(resolved);
@@ -142,17 +177,13 @@ function requireModule(path) {{
     if (window.__npmCache && window.__npmCache[specifier]) {{
       return window.__npmCache[specifier];
     }}
-    console.warn("Unresolved npm specifier in sync require:", specifier);
+    console.warn("Unresolved npm specifier:", specifier);
     return {{}};
   }}
 
   try {{
     new Function("require", "module", "exports", "__dirname", "__filename", transpiled)(
-      localRequire,
-      mod,
-      mod.exports,
-      "/",
-      path
+      localRequire, mod, mod.exports, "/", path
     );
   }} catch(e) {{
     console.error("Module execution failed for", path, ":", e.message);
@@ -184,7 +215,7 @@ setTimeout(() => {{
     requireModule({json.dumps(entry_path)});
   }} catch(e) {{
     document.getElementById("root").innerHTML =
-      '<pre style="color:red;padding:20px;font-family:monospace;">Boot error: ' + e.message + '</pre>';
+      '<pre style="color:red;padding:20px;font-family:monospace;background:#1a0000;">Boot error: ' + e.message + '</pre>';
   }}
 }}, 0);
 </script>
