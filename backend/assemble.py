@@ -1,6 +1,7 @@
 import json
 import re
 
+
 def assemble_html(files: dict) -> str:
     pkg = {}
     try:
@@ -27,13 +28,11 @@ def assemble_html(files: dict) -> str:
     ]
     css_files = [p for p in files if p.endswith(".css")]
 
-    # Collect bare specifiers from all source files
     bare_specifiers = {"react", "react-dom/client"}
     for path in js_files:
-        for match in re.finditer(r"""from\s+['"]([^'".][^'"]*)['"']""", files[path]):
+        for match in re.finditer(r'''from\s+['"]([^'".][^'"]*)['"']''', files[path]):
             bare_specifiers.add(match.group(1))
 
-    # Build import map
     REACT_PACKAGES = {"react", "react-dom"}
     imports = {}
     for spec in bare_specifiers:
@@ -47,15 +46,12 @@ def assemble_html(files: dict) -> str:
     imports["react/jsx-runtime"] = f"https://esm.sh/react@{react_version}/jsx-runtime"
     imports["react/jsx-dev-runtime"] = f"https://esm.sh/react@{react_version}/jsx-dev-runtime"
 
-    # CSS — strip @tailwind directives (Play CDN handles them)
     css = "\n".join(files[p] for p in css_files)
     css = re.sub(r"@tailwind\s+[^;]+;", "", css)
 
-    # Strip CSS side-effect imports from JS files
     def strip_css_imports(code):
         return re.sub(r"import\s+['\"][^'\"]+\.css['\"]\s*;?", "", code)
 
-    # Build inline module registry
     registry_entries = []
     for path in js_files:
         code = strip_css_imports(files[path])
@@ -69,8 +65,9 @@ def assemble_html(files: dict) -> str:
 
     registry_js = ",\n".join(registry_entries)
 
-    entry_path = "src/main.jsx" if "src/main.jsx" in files else next(
-        (f for f in js_files if re.search(r"main\.(jsx|js)$", f)), js_files[0] if js_files else ""
+    entry_path = (
+        "src/main.jsx" if "src/main.jsx" in files
+        else next((f for f in js_files if re.search(r"main\.(jsx|js)$", f)), js_files[0] if js_files else "")
     )
 
     import_map_json = json.dumps({"imports": imports})
@@ -105,65 +102,89 @@ function resolvePath(fromPath, rel) {{
   return candidates.find(c => __modules[c] !== undefined) || null;
 }}
 
-const __exports = {{}};
+const __cache = {{}};
 
 function requireModule(path) {{
-  if (__exports[path]) return __exports[path];
+  if (__cache[path]) return __cache[path].exports;
   const source = __modules[path];
-  if (!source) {{ console.error("Module not found:", path); return {{}}; }}
+  if (!source) {{
+    console.error("Module not found:", path);
+    return {{}};
+  }}
+
   let transpiled;
   try {{
     transpiled = Babel.transform(source, {{
-      presets: ["react"], filename: path, sourceType: "module"
+      presets: [
+        "react",
+        ["env", {{ targets: {{ browsers: ["last 1 chrome version"] }}, modules: "commonjs" }}]
+      ],
+      filename: path,
+      sourceType: "module"
     }}).code;
   }} catch(e) {{
-    console.error("Babel transform failed for", path, e);
+    console.error("Babel transform failed for", path, ":", e.message);
     return {{}};
   }}
-  const moduleExports = {{}};
-  __exports[path] = moduleExports;
-  transpiled = transpiled
-    .replace(/import\\s+(\\w+)\\s+from\\s+'(\\.[^']+)'/g, (_, name, rel) => {{
-      const r = resolvePath(path, rel);
-      return r ? `const ${{name}} = requireModule(${{JSON.stringify(r)}}).default || requireModule(${{JSON.stringify(r)}})` : "";
-    }})
-    .replace(/import\\s+\\{{([^}}]+)\\}}\\s+from\\s+'(\\.[^']+)'/g, (_, names, rel) => {{
-      const r = resolvePath(path, rel);
-      return r ? `const {{ ${{names}} }} = requireModule(${{JSON.stringify(r)}})` : "";
-    }})
-    .replace(/import\\s+(\\w+)\\s+from\\s+"(\\.[^"]+)"/g, (_, name, rel) => {{
-      const r = resolvePath(path, rel);
-      return r ? `const ${{name}} = requireModule(${{JSON.stringify(r)}}).default || requireModule(${{JSON.stringify(r)}})` : "";
-    }})
-    .replace(/import\\s+\\{{([^}}]+)\\}}\\s+from\\s+"(\\.[^"]+)"/g, (_, names, rel) => {{
-      const r = resolvePath(path, rel);
-      return r ? `const {{ ${{names}} }} = requireModule(${{JSON.stringify(r)}})` : "";
-    }})
-    .replace(/export\\s+default\\s+/g, "moduleExports.default = ")
-    .replace(/export\\s+\\{{([^}}]+)\\}}/g, (_, names) =>
-      names.split(",").map(n => {{ const t = n.trim(); return `moduleExports[${{JSON.stringify(t)}}] = ${{t}}`; }}).join("; ")
-    )
-    .replace(/export\\s+const\\s+(\\w+)/g, (_, name) => `const ${{name}}; moduleExports[${{JSON.stringify(name)}}] = ${{name}}`);
+
+  const mod = {{ exports: {{}} }};
+  __cache[path] = mod;
+
+  function localRequire(specifier) {{
+    if (specifier.startsWith(".")) {{
+      const resolved = resolvePath(path, specifier);
+      if (!resolved) {{
+        console.warn("Could not resolve local import:", specifier, "from", path);
+        return {{}};
+      }}
+      return requireModule(resolved);
+    }}
+    if (window.__npmCache && window.__npmCache[specifier]) {{
+      return window.__npmCache[specifier];
+    }}
+    console.warn("Unresolved npm specifier in sync require:", specifier);
+    return {{}};
+  }}
+
   try {{
-    new Function("React", "ReactDOM", "moduleExports", "requireModule", transpiled)(
-      window.__React, window.__ReactDOM, moduleExports, requireModule
+    new Function("require", "module", "exports", "__dirname", "__filename", transpiled)(
+      localRequire,
+      mod,
+      mod.exports,
+      "/",
+      path
     );
-  }} catch(e) {{ console.error("Module execution failed for", path, e); }}
-  return moduleExports;
+  }} catch(e) {{
+    console.error("Module execution failed for", path, ":", e.message);
+  }}
+
+  return mod.exports;
 }}
 </script>
 
 <script type="module">
 import React from "react";
 import ReactDOM from "react-dom/client";
+import * as framerMotion from "framer-motion";
+import * as lucide from "lucide-react";
+
 window.__React = React;
 window.__ReactDOM = ReactDOM;
+
+window.__npmCache = {{
+  "react": React,
+  "react-dom": ReactDOM,
+  "react-dom/client": ReactDOM,
+  "framer-motion": framerMotion,
+  "lucide-react": lucide,
+}};
+
 setTimeout(() => {{
   try {{
     requireModule({json.dumps(entry_path)});
   }} catch(e) {{
     document.getElementById("root").innerHTML =
-      '<pre style="color:red;padding:20px">Boot error: ' + e.message + '</pre>';
+      '<pre style="color:red;padding:20px;font-family:monospace;">Boot error: ' + e.message + '</pre>';
   }}
 }}, 0);
 </script>

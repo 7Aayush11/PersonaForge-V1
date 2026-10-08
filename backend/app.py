@@ -17,6 +17,7 @@ from auth import get_current_user, verify_token
 from portfolio_store import create_portfolio, get_portfolios_for_user, set_deploy_status, delete_portfolio
 from db import supabase
 from assemble import assemble_html
+from image_inject import find_file_containing_slot, inject_image_into_file, validate_image_data_url
 
 
 load_dotenv()
@@ -164,6 +165,61 @@ async def edit(request: EditRequest):
         print(f"Re-assembly after edit failed (non-fatal): {e}")
 
     return {"updated_files": updated_files}
+
+@app.post("/upload-image")
+async def upload_image(request: Request):
+    body = await request.json()
+
+    session_id = body.get("session_id")
+    slot_id = body.get("slot_id")
+    data_url = body.get("data_url")
+
+    if not session_id or not slot_id or not data_url:
+        raise HTTPException(status_code=400, detail="session_id, slot_id, and data_url are required")
+
+    if not validate_image_data_url(data_url):
+        raise HTTPException(status_code=400, detail="Invalid image data URL")
+
+    # Load all files for this session
+    files = get_session_files(session_id)
+    if not files:
+        raise HTTPException(status_code=404, detail="No portfolio found for this session")
+
+    # Find which file contains this slot
+    target_path = find_file_containing_slot(files, slot_id)
+    if not target_path:
+        raise HTTPException(status_code=404, detail=f"No image slot '{slot_id}' found in this portfolio")
+
+    # Inject the data URL into that file's source
+    updated_content = inject_image_into_file(files[target_path], slot_id, data_url)
+
+    if updated_content == files[target_path]:
+        # Injection didn't change anything — slot found but src replacement failed
+        raise HTTPException(status_code=500, detail=f"Found slot '{slot_id}' but could not replace its src attribute")
+
+    # Save updated file back to file_embeddings
+    try:
+        supabase.table("file_embeddings").update({
+            "content": updated_content
+        }).eq("session_id", session_id).eq("file_path", target_path).execute()
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to save updated file: {e}")
+
+    # Re-assemble HTML with the new image embedded
+    updated_files = {**files, target_path: updated_content}
+    try:
+        assembled = assemble_html(updated_files)
+        store_assembled_html(session_id, assembled)
+    except Exception as e:
+        print(f"Re-assembly after image upload failed (non-fatal): {e}")
+        traceback.print_exc()
+
+    return {
+        "slot_id": slot_id,
+        "file_path": target_path,
+        "updated_files": updated_files
+    }
 
 @app.post("/self-heal")
 async def self_heal(request: HealRequest):

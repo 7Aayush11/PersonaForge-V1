@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import styled from "styled-components";
 import { useSelfHealingPreview } from "../hooks/useSelfHealing";
+import { extractImageSlots } from "../utils/imageSlots";
 import EditModal from "./EditModal";
 import DeployPanel from "./DeployPanel";
-
+import ImageUploadPanel from "./ImageUploadPanel";
 
 const Layout = styled.div`
   display: flex;
@@ -36,6 +38,7 @@ const HealingBanner = styled.div`
   font-family: var(--font-mono);
   color: var(--text-muted);
   white-space: nowrap;
+  z-index: 10;
 `;
 
 const Sidebar = styled.div`
@@ -88,8 +91,12 @@ export default function Preview({
   files, setFiles, addToast, handleEdit, editing,
   user, onSignIn, session_id, slug, setSlug, deployedUrl, setDeployedUrl, deploying, setDeploying,
 }) {
-  
   const { previewHtml, isHealing } = useSelfHealingPreview(files, setFiles, addToast);
+
+  // Extract image slots from the assembled preview HTML
+  // useMemo so this only recomputes when previewHtml changes, not on every render
+  const imageSlots = useMemo(() => extractImageSlots(previewHtml), [previewHtml]);
+
   const handleDownload = () => {
     const blob = new Blob([previewHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
@@ -99,6 +106,10 @@ export default function Preview({
     a.click();
     URL.revokeObjectURL(url);
     addToast({ type: "info", title: "Downloaded", message: "portfolio.html saved to your device." });
+  };
+
+  const handleFilesUpdated = (updatedFiles) => {
+    setFiles(updatedFiles);
   };
 
   return (
@@ -114,7 +125,14 @@ export default function Preview({
           <Hint>Describe what you want changed in plain English. The preview updates automatically.</Hint>
         </SidebarSection>
 
-        <SidebarSection style={{ borderBottom: "none", flex: 1 }} />
+        <ImageUploadPanel
+          imageSlots={imageSlots}
+          sessionId={session_id}
+          onFilesUpdated={handleFilesUpdated}
+          addToast={addToast}
+        />
+
+        <SidebarSection style={{ flex: 1, borderBottom: "none" }} />
 
         <SidebarSection>
           <SectionTitle>↓ Download</SectionTitle>

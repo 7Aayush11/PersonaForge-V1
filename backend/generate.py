@@ -49,7 +49,7 @@ def generate(text: str):
 
                 Repeat for every file. Every file must start with exactly "@@FILE: " followed by its path. Do not escape the file contents. Do not add anything before the first @@DESCRIPTION or after the final @@FILE.
 
-                Before outputting, verify that all imports, dependencies, components, Tailwind configuration, and Vite configuration are valid and compatible."""
+                Before outputting, verify that all imports, dependencies, components, Tailwind configuration, and Vite configuration are valid and compatible. Ensure all the code is present and there is atleast 1 image slot for profile picture at start rest user can prompt while editing."""
             }
         )
         
