@@ -8,12 +8,8 @@ export function extractImageSlotsFromFiles(files) {
   Object.values(files).forEach((content) => {
     if (typeof content !== "string") return;
 
-    // Find every occurrence of data-img-slot="something"
     const slotRegex = /data-img-slot\s*=\s*["']([^"']+)["']/g;
-    const labelRegex = /data-img-slot\s*=\s*["'][^"']+["'][^]*?data-img-label\s*=\s*["']([^"']+)["']/g;
-    const srcRegex = /src\s*=\s*["']([^"']+)["'][^]*?data-img-slot\s*=\s*["']([^"']+)["']|data-img-slot\s*=\s*["']([^"']+)["'][^]*?src\s*=\s*["']([^"']+)["']/g;
-
-    // First pass: collect all slot IDs and their positions
+  
     let slotMatch;
     while ((slotMatch = slotRegex.exec(content)) !== null) {
       const slotId = slotMatch[1];
