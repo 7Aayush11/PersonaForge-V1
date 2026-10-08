@@ -5,24 +5,31 @@ export function extractImageSlotsFromFiles(files) {
   const slots = [];
   const seen = new Set();
 
-  
-  const slotRegex = /<img\b[^>]*?data-img-slot\s*=\s*["']([^"']+)["'][^>]*?>/gs;
-  const labelRegex = /data-img-label\s*=\s*["']([^"']+)["']/;
-  const srcRegex = /\bsrc\s*=\s*["']([^"']+)["']/;
-
   Object.values(files).forEach((content) => {
     if (typeof content !== "string") return;
-    let match;
 
-    slotRegex.lastIndex = 0;
-    while ((match = slotRegex.exec(content)) !== null) {
-      const slotId = match[1];
+    // Find every occurrence of data-img-slot="something"
+    const slotRegex = /data-img-slot\s*=\s*["']([^"']+)["']/g;
+    const labelRegex = /data-img-slot\s*=\s*["'][^"']+["'][^]*?data-img-label\s*=\s*["']([^"']+)["']/g;
+    const srcRegex = /src\s*=\s*["']([^"']+)["'][^]*?data-img-slot\s*=\s*["']([^"']+)["']|data-img-slot\s*=\s*["']([^"']+)["'][^]*?src\s*=\s*["']([^"']+)["']/g;
+
+    // First pass: collect all slot IDs and their positions
+    let slotMatch;
+    while ((slotMatch = slotRegex.exec(content)) !== null) {
+      const slotId = slotMatch[1];
       if (seen.has(slotId)) continue;
       seen.add(slotId);
 
-      const tag = match[0];
-      const labelMatch = labelRegex.exec(tag);
-      const srcMatch = srcRegex.exec(tag);
+      const slotPos = slotMatch.index;
+
+      // Look backward and forward ~500 chars from the slot attribute
+      // to find the label and src on the same tag
+      const start = Math.max(0, slotPos - 500);
+      const end = Math.min(content.length, slotPos + 500);
+      const surrounding = content.slice(start, end);
+
+      const labelMatch = /data-img-label\s*=\s*["']([^"']+)["']/.exec(surrounding);
+      const srcMatch = /\bsrc\s*=\s*["']([^"']+)["']/.exec(surrounding);
 
       slots.push({
         slotId,
