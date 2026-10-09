@@ -93,8 +93,8 @@ export default function Preview({
 }) {
   const { previewHtml, isHealing } = useSelfHealingPreview(files, setFiles, addToast);
 
-  const imageSlots = useMemo(() => extractImageSlotsFromFiles(previewHtml), [previewHtml]);
-
+  const imageSlots = useMemo(() => extractImageSlotsFromFiles(files), [files]);
+  
   const handleDownload = () => {
     const blob = new Blob([previewHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);

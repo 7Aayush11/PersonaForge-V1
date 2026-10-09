@@ -67,7 +67,7 @@ const EditModal = ({ handleEdit, editing }) => {
              setMessage("");
            }
          }}
-          placeholder="Ask anything..."
+          placeholder="Type your changes and let PersonaForge build it...."
           rows={1}
           style={{
             flex: 1,

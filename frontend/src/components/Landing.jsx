@@ -1,413 +1,123 @@
-import { useState } from "react";
-import styled, { keyframes } from "styled-components";
-import Upload from "./Upload";
+import { useRef, useState } from "react";
+import styled from "styled-components";
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, FileText, Globe, LayoutTemplate, MessageSquareText, ShieldCheck, Sparkles, UploadCloud, WandSparkles, Zap } from "lucide-react";
 
-const fadeUp = keyframes`from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); }`;
-
-const Wrap = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow-y: auto;
+const Page = styled.main`
+  width:100%; overflow:hidden; background:radial-gradient(ellipse at 55% 0%,rgba(255,107,53,.07),transparent 42%),var(--background,#0b0e14);
+  scroll-behavior:smooth;
 `;
-
-const HeroSection = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 72px 24px 56px;
-  gap: 32px;
-  animation: ${fadeUp} 0.5s ease;
+const Container = styled.div`width:min(1120px,calc(100% - 48px));margin:0 auto;@media(max-width:640px){width:calc(100% - 32px);}`;
+const Hero = styled.section`
+  padding:76px 0 78px; min-height:calc(100vh - 72px); display:flex; align-items:center;
+  @media(max-width:700px){padding:54px 0 52px;min-height:0;}
 `;
-
-const Eyebrow = styled.span`
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--ember);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: var(--ember-soft);
-  padding: 4px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,107,53,0.2);
+const HeroGrid = styled.div`display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);align-items:center;gap:52px;
+  @media(max-width:850px){grid-template-columns:1fr;gap:36px;}
 `;
+const Badge = styled.div`display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(255,107,53,.25);border-radius:99px;background:rgba(255,107,53,.07);color:var(--ember);font:10px var(--font-mono);letter-spacing:.09em;text-transform:uppercase;`;
+const Heading = styled.h1`margin:25px 0 0;color:var(--text-primary);font-family:var(--font-display);font-size:clamp(42px,6vw,72px);font-weight:760;letter-spacing:-.065em;line-height:1.04;span{background:linear-gradient(100deg,#ff6b35,#d88ba2 55%,#64a9ff);background-clip:text;-webkit-background-clip:text;color:transparent;}`;
+const Lead = styled.p`max-width:590px;margin:22px 0 0;color:var(--text-muted);font-size:15px;line-height:1.9;`;
+const Actions = styled.div`display:flex;flex-wrap:wrap;gap:11px;margin-top:27px;`;
+const Primary = styled.button`display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 18px;border:1px solid var(--ember);border-radius:10px;background:linear-gradient(110deg,#ff6b35,#d95748);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;&:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(255,107,53,.2);}`;
+const Secondary = styled.a`display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 17px;border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-size:13px;text-decoration:none;&:hover{background:var(--surface);}`;
+const FinePrint = styled.p`display:flex;align-items:center;gap:8px;margin:17px 0 0;color:var(--text-muted);font:10px var(--font-mono);line-height:1.8;`;
+const DemoFrame = styled.div`padding:8px;border:1px solid #303746;border-radius:17px;background:linear-gradient(145deg,#171d28,#0f1219);box-shadow:0 32px 90px rgba(0,0,0,.35);`;
+const DemoBar = styled.div`display:flex;align-items:center;justify-content:space-between;padding:10px 12px;`;
+const Dots = styled.div`display:flex;gap:6px;span{width:7px;height:7px;border-radius:50%;background:#465062;}span:first-child{background:#ff765d;}span:nth-child(2){background:#e8bd61;}span:nth-child(3){background:#6cbe8b;}`;
+const Mono = styled.span`color:#8290a5;font:9px var(--font-mono);`;
+const DemoPage = styled.div`overflow:hidden;border:1px solid #29313e;border-radius:10px;background:#0d1119;`;
+const DemoNav = styled.div`display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #252c38;color:#e7edf7;font-size:10px;font-weight:700;`;
+const DemoLinks = styled.div`display:flex;gap:12px;color:#8492a8;font-size:8px;font-weight:400;`;
+const DemoHero = styled.div`display:grid;grid-template-columns:1.1fr .7fr;align-items:center;gap:12px;padding:24px 18px;background:radial-gradient(circle at 100% 0%,rgba(86,135,207,.15),transparent 50%),#101722;`;
+const DemoCopy = styled.div`span{color:#ff936d;font:8px var(--font-mono);text-transform:uppercase;}h3{margin:8px 0;color:#edf2fa;font-size:clamp(17px,2vw,25px);letter-spacing:-.04em;line-height:1.1;}p{margin:0;color:#8e9db3;font-size:9px;line-height:1.7;}`;
+const DemoAvatar = styled.div`aspect-ratio:4/5;display:grid;place-items:center;border:1px solid #3b475a;border-radius:12px;background:linear-gradient(145deg,#27354a,#151c28);color:#ff9876;svg{width:28px;height:28px;}`;
+const DemoSection = styled.div`padding:15px 18px 18px;strong{display:block;margin-bottom:10px;color:#e7edf7;font-size:10px;}`;
+const DemoCards = styled.div`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;`;
+const DemoCard = styled.div`padding:12px;border:1px solid #29313e;border-radius:8px;background:#111722;svg{color:#ff936d;width:14px;height:14px;}b{display:block;margin-top:8px;color:#e7edf7;font-size:9px;}p{margin:5px 0 0;color:#8290a5;font-size:8px;line-height:1.6;}`;
+const Section = styled.section`padding:82px 0;scroll-margin-top:90px;@media(max-width:640px){padding:58px 0;}`;
+const SectionHead = styled.div`max-width:680px;margin:0 auto 36px;text-align:center;span{color:var(--ember);font:10px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;}h2{margin:14px 0 0;color:var(--text-primary);font-family:var(--font-display);font-size:clamp(30px,4.5vw,45px);letter-spacing:-.05em;line-height:1.12;}p{margin:14px 0 0;color:var(--text-muted);font-size:13px;line-height:1.9;}`;
+const ThreeGrid = styled.div`display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;@media(max-width:760px){grid-template-columns:1fr;}`;
+const Card = styled.article`padding:23px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.015);transition:border-color .2s,transform .2s;&:hover{border-color:rgba(255,107,53,.4);transform:translateY(-2px);}h3{margin:0;color:var(--text-primary);font-size:15px;}p{margin:10px 0 0;color:var(--text-muted);font-size:12px;line-height:1.85;} .icon{display:grid;place-items:center;width:39px;height:39px;margin-bottom:18px;border:1px solid rgba(255,107,53,.18);border-radius:10px;background:rgba(255,107,53,.07);color:var(--ember);}`;
+const Step = styled.div`display:flex;gap:15px;align-items:flex-start;.num{display:grid;place-items:center;width:35px;height:35px;flex-shrink:0;border:1px solid rgba(255,107,53,.25);border-radius:10px;color:var(--ember);font:11px var(--font-mono);background:rgba(255,107,53,.06);}h3{margin:2px 0 0;color:var(--text-primary);font-size:15px;}p{margin:7px 0 0;color:var(--text-muted);font-size:12px;line-height:1.8;}`;
+const FAQ = styled.div`max-width:760px;margin:0 auto;border-top:1px solid var(--border);`;
+const FAQItem = styled.details`padding:18px 0;border-bottom:1px solid var(--border);summary{display:flex;justify-content:space-between;align-items:center;gap:15px;color:var(--text-primary);font-size:13px;font-weight:650;cursor:pointer;list-style:none;}summary::-webkit-details-marker{display:none;}summary svg{color:var(--text-muted);transition:transform .2s;} &[open] summary svg{transform:rotate(180deg);}p{margin:12px 0 0;color:var(--text-muted);font-size:12px;line-height:1.9;}`;
+const AboutBand = styled.div`padding:30px;border:1px solid #2b3442;border-radius:16px;background:linear-gradient(110deg,#121a25,#10141c);h3{margin:0;color:var(--text-primary);font-size:19px;}p{max-width:760px;margin:12px 0 0;color:var(--text-muted);font-size:13px;line-height:1.9;}`;
+const BottomCTA = styled.section`padding:10px 0 80px;scroll-margin-top:90px;`;
+const CTACard = styled.div`padding:48px 22px;border:1px solid #34323a;border-radius:18px;background:radial-gradient(ellipse at 50% 100%,rgba(255,107,53,.13),transparent 65%),#11151e;text-align:center;h2{margin:0;color:#edf2fa;font-family:var(--font-display);font-size:clamp(28px,4vw,42px);letter-spacing:-.05em;}p{max-width:550px;margin:14px auto 0;color:#9aa9c0;font-size:13px;line-height:1.8;}.actions{display:flex;justify-content:center;margin-top:23px;}`;
+const Input = styled.input`display:none;`;
 
-const Headline = styled.h1`
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(36px, 5.5vw, 58px);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  margin: 0;
-  text-align: center;
-  max-width: 720px;
-`;
-
-const Accent = styled.span`
-  background: linear-gradient(90deg, var(--ember), var(--steel));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
-const Sub = styled.p`
-  font-size: 17px;
-  color: var(--text-muted);
-  line-height: 1.7;
-  margin: 0;
-  text-align: center;
-  max-width: 560px;
-`;
-
-const StepsRail = styled.div`
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  max-width: 560px;
-  width: 100%;
-  &::before {
-    content: "";
-    position: absolute;
-    top: 17px;
-    left: 48px;
-    right: 48px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--ember), var(--steel));
-    opacity: 0.3;
-  }
-`;
-
-const SparkTravel = keyframes`
-  0%, 10% { left: 48px; }
-  45%, 55% { left: calc(50% - 5px); }
-  90%, 100% { left: calc(100% - 58px); }
-`;
-
-const TravelSpark = styled.div`
-  position: absolute;
-  top: 13px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--ember);
-  box-shadow: 0 0 14px var(--ember);
-  animation: ${SparkTravel} 4s ease-in-out infinite;
-`;
-
-const Step = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 110px;
-  z-index: 1;
-`;
-
-const Dot = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-muted);
-`;
-
-const StepLabel = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-`;
-
-const StepDetail = styled.span`
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.4;
-`;
-
-const PrivacyNote = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 20px;
-`;
-
-const Divider = styled.div`
-  width: 100%;
-  height: 1px;
-  background: var(--border);
-`;
-
-const FeaturesSection = styled.div`
-  width: 100%;
-  max-width: 900px;
-  padding: 56px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 40px;
-`;
-
-const SectionTitle = styled.h2`
-  font-family: var(--font-display);
-  font-size: clamp(24px, 3vw, 32px);
-  font-weight: 700;
-  margin: 0;
-  text-align: center;
-  letter-spacing: -0.02em;
-`;
-
-const FeatureGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  width: 100%;
-`;
-
-const FeatureCard = styled.div`
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: border-color 0.2s ease;
-  &:hover { border-color: var(--steel); }
-`;
-
-const FeatureIcon = styled.span`font-size: 22px;`;
-const FeatureName = styled.h3`margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary);`;
-const FeatureDesc = styled.p`margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;`;
-
-const FAQSection = styled.div`
-  width: 100%;
-  max-width: 680px;
-  padding: 0 24px 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 32px;
-`;
-
-const FAQList = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const FAQItem = styled.div`
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-`;
-
-const FAQQuestion = styled.button`
-  width: 100%;
-  text-align: left;
-  padding: 16px 18px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  &:hover { color: var(--steel); }
-`;
-
-const FAQArrow = styled.span`
-  font-size: 12px;
-  color: var(--text-muted);
-  transition: transform 0.2s ease;
-  transform: ${p => p.$open ? "rotate(180deg)" : "rotate(0deg)"};
-  flex-shrink: 0;
-`;
-
-const FAQAnswer = styled.div`
-  padding: ${p => p.$open ? "0 18px 16px" : "0 18px"};
-  max-height: ${p => p.$open ? "400px" : "0"};
-  overflow: hidden;
-  transition: max-height 0.25s ease, padding 0.25s ease;
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.7;
-`;
-
-const FooterSection = styled.footer`
-  width: 100%;
-  border-top: 1px solid var(--border);
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-`;
-
-const FooterGrid = styled.div`
-  width: 100%;
-  max-width: 800px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 32px;
-`;
-
-const FooterCol = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const FooterTitle = styled.h4`
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary);
-`;
-
-const FooterLink = styled.a`
-  font-size: 13px;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color 0.15s ease;
-  &:hover { color: var(--steel); }
-`;
-
-const FEATURES = [
-  { icon: "⚡", name: "Under 30 seconds", desc: "Upload a resume and get a complete, styled portfolio before you can make a coffee." },
-  { icon: "🔒", name: "Privacy first", desc: "Your resume is deleted from our servers the moment your portfolio is generated. Nothing is stored." },
-  { icon: "✏️", name: "Chat to edit", desc: "Describe what you want changed in plain English. No templates, no drag-and-drop." },
-  { icon: "🚀", name: "One-click deploy", desc: "Get a live, shareable link instantly. No hosting setup, no DNS, no config files." },
-  { icon: "⚛️", name: "Built with React", desc: "Real production-grade code: React, Tailwind, and Framer Motion — not a static HTML export." },
-  { icon: "🌐", name: "Custom domains", desc: "Connect your own domain to your deployed portfolio from the dashboard." },
+const faqs = [
+  ["What files can I upload?", "The current upload flow accepts PDF, PNG, JPG, and JPEG files. Choose a clear document you are authorized to share."],
+  ["Can I edit my generated portfolio?", "Yes. The application provides an AI-assisted editing workflow where you describe the changes you want and review the updated preview."],
+  ["Is the generated content guaranteed to be accurate?", "No. AI output can omit details or introduce errors. Verify your dates, skills, experience, contact details, and links before sharing."],
+  ["Do I need to publish my portfolio immediately?", "No. Review and refine the generated portfolio before downloading or deploying it."],
+  ["What does PersonaForge cost?", "Pricing and future plans are being finalized. Check the Pricing page for confirmed information."],
 ];
 
-const FAQS = [
-  { q: "Is PersonaForge free to use?", a: "Yes — generating, editing, and deploying your portfolio is completely free right now. We'll introduce optional paid features in the future, but the core experience will always have a free tier." },
-  { q: "Do you store my resume?", a: "No. Your resume is processed in memory and deleted from our servers the moment your portfolio has been generated. We never store, read, or share your personal documents." },
-  { q: "What file formats does it accept?", a: "PDF resumes and image-based resumes (JPG, PNG). Most resumes — whether exported from Word, Google Docs, or scanned — will work correctly." },
-  { q: "Can I edit my portfolio after deploying?", a: "Yes. Sign in, open your portfolio from the dashboard, make changes through the chat editor, and redeploy. Your live link stays the same." },
-  { q: "Does the generated code actually work as a real website?", a: "Yes. PersonaForge generates real React + Tailwind + Framer Motion code, not a static screenshot. You can download the source code, run it locally, and deploy it anywhere." },
-  { q: "What happens if I don't like the output?", a: "Use the chat editor to describe exactly what you want changed — colors, layout, sections, content. If something's genuinely wrong, the self-healing system will attempt to fix it automatically." },
-  { q: "Can I use a custom domain?", a: "Custom domain support is coming. For now, deployed portfolios get a personaforge link. Sign in and check your dashboard for updates." },
-  { q: "Who built this?", a: "PersonaForge is built and maintained by Aayush Nisar. Reach out via the contact link below for anything from feedback to enterprise inquiries." },
-];
+export default function Landing({ handleUpload, onNavigate }) {
+  const inputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const selectFile = () => inputRef.current?.click();
+  const processFile = (file) => {
+    if (!file || !inputRef.current) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    inputRef.current.files = transfer.files;
+    handleUpload({ target: inputRef.current });
+  };
+  const goSection = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-function FAQRow({ q, a }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <FAQItem>
-      <FAQQuestion onClick={() => setOpen(o => !o)}>
-        {q}
-        <FAQArrow $open={open}>▼</FAQArrow>
-      </FAQQuestion>
-      <FAQAnswer $open={open}>{a}</FAQAnswer>
-    </FAQItem>
-  );
-}
+  return <Page>
+    <Hero id="home"><Container><HeroGrid>
+      <div>
+        <Badge><Sparkles size={13}/> Resume to portfolio</Badge>
+        <Heading>Your Documents.<br/>Your Story.<br/><span>Your Website.</span></Heading>
+        <Lead>Turn your resume into a personal portfolio website with AI. Generate a first draft, refine it in plain English, and prepare your work to share.</Lead>
+        <Actions>
+          <Primary onClick={selectFile}><UploadCloud size={17}/> Upload your resume <ArrowRight size={15}/></Primary>
+          <Secondary href="#how-it-works" onClick={(e)=>{e.preventDefault();goSection("how-it-works");}}>How it works <ArrowUpRight size={15}/></Secondary>
+        </Actions>
+        <FinePrint><ShieldCheck size={14}/> Start with a PDF or image · Review before sharing</FinePrint>
+        <Input ref={inputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" onChange={(e)=>{const f=e.target.files?.[0];if(f)handleUpload(e);}} />
+      </div>
+      <DemoFrame onDragOver={(e)=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={(e)=>{e.preventDefault();setDragging(false);processFile(e.dataTransfer.files?.[0]);}} style={{outline:dragging?"2px solid #ff6b35":"none",outlineOffset:3}}>
+        <DemoBar><Dots><span/><span/><span/></Dots><Mono>personaforge / portfolio-preview</Mono><LayoutTemplate size={13} color="#8290a5"/></DemoBar>
+        <DemoPage>
+          <DemoNav><span>YOUR PORTFOLIO</span><DemoLinks><span>About</span><span>Projects</span><span>Contact</span></DemoLinks></DemoNav>
+          <DemoHero><DemoCopy><span>YOUR STORY, YOUR WAY</span><h3>A portfolio that feels like you.</h3><p>Bring your experience, projects, and achievements together in one place.</p></DemoCopy><DemoAvatar><LayoutTemplate/></DemoAvatar></DemoHero>
+          <DemoSection><strong>Selected work</strong><DemoCards><DemoCard><WandSparkles/><b>Featured project</b><p>Showcase your work and achievements.</p></DemoCard><DemoCard><Globe/><b>Professional profile</b><p>Give visitors a clear picture of your skills.</p></DemoCard></DemoCards></DemoSection>
+        </DemoPage>
+      </DemoFrame>
+    </HeroGrid></Container></Hero>
 
-export default function Landing({ handleUpload }) {
-  return (
-    <Wrap>
-      <HeroSection>
-        <Eyebrow>Resume → Portfolio</Eyebrow>
-        <Headline>
-          Your resume, forged into a<br />
-          <Accent>live portfolio.</Accent>
-        </Headline>
-        <Sub>
-          Upload a PDF or photo of your resume. PersonaForge builds a real, React-powered personal website around it — then lets you refine it by describing what you want changed.
-        </Sub>
+    <Section id="how-it-works"><Container>
+      <SectionHead><span>How it works</span><h2>From document to digital presence.</h2><p>Start with information you already have, then shape it into a website you can confidently review and share.</p></SectionHead>
+      <ThreeGrid>
+        <Card><Step><div className="num">01</div><div><h3>Upload your resume</h3><p>Provide a supported PDF or image with your experience, skills, and projects.</p></div></Step></Card>
+        <Card><Step><div className="num">02</div><div><h3>Generate your first draft</h3><p>PersonaForge uses the supplied information to create the foundation of a portfolio.</p></div></Step></Card>
+        <Card><Step><div className="num">03</div><div><h3>Refine and share</h3><p>Request changes, replace images, preview the result, and download or deploy when ready.</p></div></Step></Card>
+      </ThreeGrid>
+    </Container></Section>
 
-        <StepsRail>
-          <TravelSpark />
-          <Step>
-            <Dot>01</Dot>
-            <StepLabel>Upload</StepLabel>
-            <StepDetail>PDF or photo of your resume</StepDetail>
-          </Step>
-          <Step>
-            <Dot>02</Dot>
-            <StepLabel>Forge</StepLabel>
-            <StepDetail>Describe changes in plain English</StepDetail>
-          </Step>
-          <Step>
-            <Dot>03</Dot>
-            <StepLabel>Deploy</StepLabel>
-            <StepDetail>Get a live link to share</StepDetail>
-          </Step>
-        </StepsRail>
+    <Section id="features" style={{background:"rgba(255,255,255,.012)"}}><Container>
+      <SectionHead><span>Features</span><h2>Skip the blank page. Focus on your story.</h2><p>A practical toolkit to help you turn existing professional content into a polished online presence.</p></SectionHead>
+      <ThreeGrid>
+        <Card><div className="icon"><FileText size={19}/></div><h3>Resume-based generation</h3><p>Start from the professional information you already have instead of building everything from scratch.</p></Card>
+        <Card><div className="icon"><WandSparkles size={19}/></div><h3>AI-assisted refinement</h3><p>Describe the changes you want in plain English and review the updated portfolio.</p></Card>
+        <Card><div className="icon"><Globe size={19}/></div><h3>A portfolio in one place</h3><p>Present your background, experience, projects, and contact information together.</p></Card>
+        <Card><div className="icon"><MessageSquareText size={19}/></div><h3>Personalized content</h3><p>Iterate on the first draft to better reflect your goals and professional identity.</p></Card>
+        <Card><div className="icon"><Check size={19}/></div><h3>Preview and download</h3><p>Review your website and export a self-contained HTML file for manual hosting.</p></Card>
+        <Card><div className="icon"><Zap size={19}/></div><h3>Deployment workflow</h3><p>Use the available deployment flow to publish your portfolio when you are ready.</p></Card>
+      </ThreeGrid>
+    </Container></Section>
 
-        <Upload handleUpload={handleUpload} />
+    <Section id="about"><Container><AboutBand><span style={{color:"var(--ember)",font:"10px var(--font-mono)",letterSpacing:".12em"}}>ABOUT PERSONAFORGE</span><h3 style={{marginTop:12}}>Make your work easier to discover.</h3><p>PersonaForge is built around a simple idea: your professional story should not be trapped inside a document. We are creating a simpler way to turn existing information into a personal website, with AI helping you get started and editing tools helping you make it your own.</p><Actions><Secondary href="/about" onClick={(e)=>{e.preventDefault();onNavigate?.("/about");}}>More about us <ArrowUpRight size={15}/></Secondary></Actions></AboutBand></Container></Section>
 
-        <PrivacyNote>
-          <span>🔒</span>
-          Your resume is deleted from our servers the moment your portfolio is generated.
-        </PrivacyNote>
-      </HeroSection>
+    <Section id="faq"><Container>
+      <SectionHead><span>FAQ</span><h2>Questions, answered.</h2><p>What to know before creating your portfolio with PersonaForge.</p></SectionHead>
+      <FAQ>{faqs.map(([q,a])=><FAQItem key={q}><summary>{q}<ChevronDown size={16}/></summary><p>{a}</p></FAQItem>)}</FAQ>
+    </Container></Section>
 
-      <Divider />
-
-      <FeaturesSection>
-        <SectionTitle>Everything you need, nothing you don't</SectionTitle>
-        <FeatureGrid>
-          {FEATURES.map(f => (
-            <FeatureCard key={f.name}>
-              <FeatureIcon>{f.icon}</FeatureIcon>
-              <FeatureName>{f.name}</FeatureName>
-              <FeatureDesc>{f.desc}</FeatureDesc>
-            </FeatureCard>
-          ))}
-        </FeatureGrid>
-      </FeaturesSection>
-
-      <Divider />
-
-      <FAQSection>
-        <SectionTitle>Frequently asked questions</SectionTitle>
-        <FAQList>
-          {FAQS.map(faq => <FAQRow key={faq.q} q={faq.q} a={faq.a} />)}
-        </FAQList>
-      </FAQSection>
-
-      <FooterSection>
-        <FooterGrid>
-          <FooterCol>
-            <FooterTitle>PersonaForge</FooterTitle>
-            <FooterLink href="#" onClick={e => e.preventDefault()}>Home</FooterLink>
-            <FooterLink href="#" onClick={e => e.preventDefault()}>Dashboard</FooterLink>
-          </FooterCol>
-          <FooterCol>
-            <FooterTitle>Resources</FooterTitle>
-            <FooterLink href="https://github.com/7Aayush11" target="_blank" rel="noopener noreferrer">GitHub</FooterLink>
-            <FooterLink href="https://linkedin.com/in/aayush-nisar" target="_blank" rel="noopener noreferrer">LinkedIn</FooterLink>
-          </FooterCol>
-          <FooterCol>
-            <FooterTitle>Contact</FooterTitle>
-            <FooterLink href="mailto:nisarayush1172004@gmail.com">nisarayush1172004@gmail.com</FooterLink>
-            <FooterLink href="https://github.com/7Aayush11/PersonaForge-V1" target="_blank" rel="noopener noreferrer">Open source on GitHub</FooterLink>
-          </FooterCol>
-        </FooterGrid>
-      </FooterSection>
-    </Wrap>
-  );
+    <BottomCTA><Container><CTACard><h2>Give your experience a home.</h2><p>Start with your resume, shape the result, and create a portfolio that helps people understand what you do.</p><div className="actions"><Primary onClick={selectFile}><UploadCloud size={17}/> Create my portfolio <ArrowRight size={15}/></Primary></div></CTACard></Container></BottomCTA>
+  </Page>;
 }

@@ -15,15 +15,15 @@ def generate(text: str):
 
                 STACK: React + Vite + Tailwind CSS + Framer Motion + Lucide React. Use JavaScript, not TypeScript. Use Vite <= 4.2.x, @vitejs/plugin-react 4.2.0, React 18, Tailwind CSS 3.x, and compatible Framer Motion/Lucide React versions. Do not use React Router, Next.js, Bootstrap, Material UI, shadcn/ui, Redux, Three.js, GSAP, or unnecessary dependencies.
 
-                DESIGN: First understand the person's profession, experience, projects, skills, and content, then choose an appropriate visual style. Possible styles include minimal, professional, creative, editorial, corporate, SaaS, developer, AI/data, academic, or bold startup. Use a cohesive color palette, strong typography, excellent spacing, responsive grids, cards, badges, pills, borders, subtle shadows, gradients, blobs, patterns, bento layouts, timelines, and other modern UI elements where appropriate. Do not use every effect at once. Avoid visual clutter and excessive gradients. The final result should look polished and production-ready. Add the title of the portfolio in index.html as Name - JobTitle best suited based on the resume yet simple. 
+                DESIGN: First understand the person's profession, experience, projects, skills, and content, then choose an appropriate visual style. Possible styles include minimal, professional, creative, editorial, corporate, SaaS, developer, AI/data, academic, or bold startup. Use a cohesive color palette, strong typography, excellent spacing, responsive grids, cards, badges, pills, borders, subtle shadows, gradients, blobs, patterns, bento layouts, timelines, and other modern UI elements where appropriate. Do not use every effect at once. Avoid visual clutter and excessive gradients. The final result should look polished and production-ready. Add the title of the portfolio in index.html as Name - JobTitle best suited based on the resume yet simple. Do not add any kind of forms in the application since it is totally a frontend app without any backend accessibility.
 
                 Use CSS, Tailwind, and simple inline SVG for decorative elements instead of external assets. Use Lucide React for interface icons. Use emojis only when they genuinely fit the content. Do not guess icon names.
 
                 ANIMATION: Use Framer Motion for subtle hero entrances, section reveals, hover effects, card interactions, and staggered content. Avoid excessive or distracting animation.
 
-                CONTENT: Never invent personal information. Do not fabricate companies, positions, dates, achievements, metrics, testimonials, projects, technologies, certifications, awards, URLs, social links, email addresses, phone numbers, locations, or experience. Only use information explicitly provided. If a section has insufficient data, omit it completely. Never create empty or filler sections.
+                CONTENT: Never invent personal information. Do not fabricate companies, positions, dates, achievements, metrics, testimonials, projects, technologies, certifications, awards, URLs, social links, email addresses, phone numbers, locations, or experience. Only use information explicitly provided. If a section has insufficient data, use only that data to build the section. Never create empty or filler sections.
 
-                IMAGES: Use https://placehold.co for every image slot. Every image must have a unique data-img-slot and descriptive data-img-label attribute. Example: data-img-slot="hero-profile" data-img-label="Professional profile photo". Never reuse an image slot. Do not use external image URLs.
+                IMAGES: Use https://placehold.co for every image slot. Every image must have a unique data-img-slot and descriptive data-img-label attribute. Example: data-img-slot="hero-profile" data-img-label="Professional profile photo". Never reuse an image slot. Do not use external image URLs. Always write data-img-slot and data-img-label as static string attributes, never as JSX expressions or dynamic values. Even when rendering from an array, define the slot ID as a plain string literal on the img tag: data-img-slot="proj-rfm-01" not data-img-slot={'proj.imgSlot'}. Ensure there are atleast image slots for one profile picture and for each project.
 
                 LAYOUT: Create a responsive single-page application with anchor navigation. Use semantic HTML and a sensible component structure. Typical components may include Header, Hero, About, Experience, Projects, Skills, Education, Contact, and Footer, but only create sections supported by the provided data. Prioritize the most important information based on the person's profile.
 
@@ -49,7 +49,7 @@ def generate(text: str):
 
                 Repeat for every file. Every file must start with exactly "@@FILE: " followed by its path. Do not escape the file contents. Do not add anything before the first @@DESCRIPTION or after the final @@FILE.
 
-                Before outputting, verify that all imports, dependencies, components, Tailwind configuration, and Vite configuration are valid and compatible. Ensure all the code is present and there is atleast 1 image slot for profile picture at start rest user can prompt while editing."""
+                Before outputting, verify that all imports, dependencies, components, Tailwind configuration, and Vite configuration are valid and compatible."""
             }
         )
         
