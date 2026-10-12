@@ -54,3 +54,9 @@ def verify_token(token: str) -> dict | None:
         return {"user_id": payload["sub"], "email": payload.get("email")}
     except Exception:
         return None
+
+def get_optional_user(authorization: str = Header(None)):
+    """Return the authenticated Supabase user, or None for a guest request."""
+    if not authorization:
+        return None
+    return get_current_user(authorization)

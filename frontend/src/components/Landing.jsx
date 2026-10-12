@@ -35,23 +35,23 @@ const DemoSection = styled.div`padding:15px 18px 18px;strong{display:block;margi
 const DemoCards = styled.div`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;`;
 const DemoCard = styled.div`padding:12px;border:1px solid #29313e;border-radius:8px;background:#111722;svg{color:#ff936d;width:14px;height:14px;}b{display:block;margin-top:8px;color:#e7edf7;font-size:9px;}p{margin:5px 0 0;color:#8290a5;font-size:8px;line-height:1.6;}`;
 const Section = styled.section`padding:82px 0;scroll-margin-top:90px;@media(max-width:640px){padding:58px 0;}`;
-const SectionHead = styled.div`max-width:680px;margin:0 auto 36px;text-align:center;span{color:var(--ember);font:10px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;}h2{margin:14px 0 0;color:var(--text-primary);font-family:var(--font-display);font-size:clamp(30px,4.5vw,45px);letter-spacing:-.05em;line-height:1.12;}p{margin:14px 0 0;color:var(--text-muted);font-size:13px;line-height:1.9;}`;
+const SectionHead = styled.div`max-width:680px;margin:0 auto 36px;text-align:center;span{color:var(--ember);font:11px var(--font-mono);letter-spacing:.14em;text-transform:uppercase;}h2{margin:14px 0 0;color:var(--text-primary);font-family:var(--font-display);font-size:clamp(36px,5vw,54px);letter-spacing:-.05em;line-height:1.12;}p{margin:14px 0 0;color:var(--text-muted);font-size:13px;line-height:1.9;}`;
 const ThreeGrid = styled.div`display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;@media(max-width:760px){grid-template-columns:1fr;}`;
 const Card = styled.article`padding:23px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.015);transition:border-color .2s,transform .2s;&:hover{border-color:rgba(255,107,53,.4);transform:translateY(-2px);}h3{margin:0;color:var(--text-primary);font-size:15px;}p{margin:10px 0 0;color:var(--text-muted);font-size:12px;line-height:1.85;} .icon{display:grid;place-items:center;width:39px;height:39px;margin-bottom:18px;border:1px solid rgba(255,107,53,.18);border-radius:10px;background:rgba(255,107,53,.07);color:var(--ember);}`;
 const Step = styled.div`display:flex;gap:15px;align-items:flex-start;.num{display:grid;place-items:center;width:35px;height:35px;flex-shrink:0;border:1px solid rgba(255,107,53,.25);border-radius:10px;color:var(--ember);font:11px var(--font-mono);background:rgba(255,107,53,.06);}h3{margin:2px 0 0;color:var(--text-primary);font-size:15px;}p{margin:7px 0 0;color:var(--text-muted);font-size:12px;line-height:1.8;}`;
 const FAQ = styled.div`max-width:760px;margin:0 auto;border-top:1px solid var(--border);`;
-const FAQItem = styled.details`padding:18px 0;border-bottom:1px solid var(--border);summary{display:flex;justify-content:space-between;align-items:center;gap:15px;color:var(--text-primary);font-size:13px;font-weight:650;cursor:pointer;list-style:none;}summary::-webkit-details-marker{display:none;}summary svg{color:var(--text-muted);transition:transform .2s;} &[open] summary svg{transform:rotate(180deg);}p{margin:12px 0 0;color:var(--text-muted);font-size:12px;line-height:1.9;}`;
+const FAQItem = styled.details`padding:18px 0;border-bottom:1px solid var(--border);summary{display:flex;justify-content:space-between;align-items:center;gap:15px;color:var(--text-primary);font-size:15px;font-weight:650;cursor:pointer;list-style:none;}summary::-webkit-details-marker{display:none;}summary svg{color:var(--text-muted);transition:transform .2s;} &[open] summary svg{transform:rotate(180deg);}p{margin:12px 0 0;color:var(--text-muted);font-size:12px;line-height:1.9;}`;
 const AboutBand = styled.div`padding:30px;border:1px solid #2b3442;border-radius:16px;background:linear-gradient(110deg,#121a25,#10141c);h3{margin:0;color:var(--text-primary);font-size:19px;}p{max-width:760px;margin:12px 0 0;color:var(--text-muted);font-size:13px;line-height:1.9;}`;
 const BottomCTA = styled.section`padding:10px 0 80px;scroll-margin-top:90px;`;
 const CTACard = styled.div`padding:48px 22px;border:1px solid #34323a;border-radius:18px;background:radial-gradient(ellipse at 50% 100%,rgba(255,107,53,.13),transparent 65%),#11151e;text-align:center;h2{margin:0;color:#edf2fa;font-family:var(--font-display);font-size:clamp(28px,4vw,42px);letter-spacing:-.05em;}p{max-width:550px;margin:14px auto 0;color:#9aa9c0;font-size:13px;line-height:1.8;}.actions{display:flex;justify-content:center;margin-top:23px;}`;
 const Input = styled.input`display:none;`;
 
 const faqs = [
-  ["What files can I upload?", "The current upload flow accepts PDF, PNG, JPG, and JPEG files. Choose a clear document you are authorized to share."],
+  ["What files can I upload?", "Upload a PDF, DOCX, DOC, or TXT resume. Choose a document you are authorized to share."],
   ["Can I edit my generated portfolio?", "Yes. The application provides an AI-assisted editing workflow where you describe the changes you want and review the updated preview."],
   ["Is the generated content guaranteed to be accurate?", "No. AI output can omit details or introduce errors. Verify your dates, skills, experience, contact details, and links before sharing."],
   ["Do I need to publish my portfolio immediately?", "No. Review and refine the generated portfolio before downloading or deploying it."],
-  ["What does PersonaForge cost?", "Pricing and future plans are being finalized. Check the Pricing page for confirmed information."],
+  ["What does PersonaForge cost?", "Free access includes one portfolio generation and up to three edits per week after signing in. Premium is available monthly or quarterly; see Pricing for current plan options."],
 ];
 
 export default function Landing({ handleUpload, onNavigate }) {
@@ -77,8 +77,8 @@ export default function Landing({ handleUpload, onNavigate }) {
           <Primary onClick={selectFile}><UploadCloud size={17}/> Upload your resume <ArrowRight size={15}/></Primary>
           <Secondary href="#how-it-works" onClick={(e)=>{e.preventDefault();goSection("how-it-works");}}>How it works <ArrowUpRight size={15}/></Secondary>
         </Actions>
-        <FinePrint><ShieldCheck size={14}/> Start with a PDF or image · Review before sharing</FinePrint>
-        <Input ref={inputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" onChange={(e)=>{const f=e.target.files?.[0];if(f)handleUpload(e);}} />
+        <FinePrint><ShieldCheck size={14}/> PDF, DOCX, DOC or TXT · Review before sharing</FinePrint>
+        <Input ref={inputRef} type="file" accept=".pdf,.docx,.doc,.txt" onChange={async (e)=>{const input=e.currentTarget; if(input.files?.[0]) await handleUpload(e); input.value="";}} />
       </div>
       <DemoFrame onDragOver={(e)=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={(e)=>{e.preventDefault();setDragging(false);processFile(e.dataTransfer.files?.[0]);}} style={{outline:dragging?"2px solid #ff6b35":"none",outlineOffset:3}}>
         <DemoBar><Dots><span/><span/><span/></Dots><Mono>personaforge / portfolio-preview</Mono><LayoutTemplate size={13} color="#8290a5"/></DemoBar>
@@ -93,7 +93,7 @@ export default function Landing({ handleUpload, onNavigate }) {
     <Section id="how-it-works"><Container>
       <SectionHead><span>How it works</span><h2>From document to digital presence.</h2><p>Start with information you already have, then shape it into a website you can confidently review and share.</p></SectionHead>
       <ThreeGrid>
-        <Card><Step><div className="num">01</div><div><h3>Upload your resume</h3><p>Provide a supported PDF or image with your experience, skills, and projects.</p></div></Step></Card>
+        <Card><Step><div className="num">01</div><div><h3>Upload your resume</h3><p>Provide a PDF, DOCX, DOC, or TXT resume with your experience, skills, and projects.</p></div></Step></Card>
         <Card><Step><div className="num">02</div><div><h3>Generate your first draft</h3><p>PersonaForge uses the supplied information to create the foundation of a portfolio.</p></div></Step></Card>
         <Card><Step><div className="num">03</div><div><h3>Refine and share</h3><p>Request changes, replace images, preview the result, and download or deploy when ready.</p></div></Step></Card>
       </ThreeGrid>

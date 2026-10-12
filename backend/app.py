@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -13,16 +13,20 @@ from parse_files import parse_generated_files
 from parser import get_json
 from self_heal import heal_files
 from vector_store import store_file_embeddings, find_top_matches, get_all_file_path, get_session_files, get_assembled_html, store_assembled_html
-from auth import get_current_user, verify_token
+from auth import get_current_user, get_optional_user, verify_token
 from portfolio_store import create_portfolio, get_portfolios_for_user, set_deploy_status, delete_portfolio
 from db import supabase
 from assemble import assemble_html
 from image_inject import find_file_containing_slot, inject_image_into_file, validate_image_data_url
+from user_plan import get_user_plan, consume_generation, consume_edit, record_guest_generation, get_entitlements, get_profile, guest_generation_used
+from guest_identity import get_guest_id, hash_guest_id, hash_client_ip
+from billing import router as billing_router
 
 
 load_dotenv()
 
 app = FastAPI()
+app.include_router(billing_router)
 
 raw = os.getenv("CORS")
 origins = [o.strip() for o in raw.split(",") if o.strip()]
@@ -39,8 +43,20 @@ app.add_middleware(
 
 MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
 
+@app.get("/entitlements")
+async def entitlements(request: Request, response: Response, user=Depends(get_optional_user)):
+    if user:
+        data = get_entitlements(user_id=user["user_id"])
+        data["subscription"] = get_profile(user["user_id"])
+        return data
+    guest_id = get_guest_id(request, response)
+    data = get_entitlements(guest=True)
+    data["can_generate"] = not guest_generation_used(hash_guest_id(guest_id))
+    return data
+
+
 @app.post("/generate")
-async def upload(request: Request, file: UploadFile = File(...)):
+async def upload(request: Request, response: Response, file: UploadFile = File(...), user=Depends(get_optional_user)):
     allowed = ["application/pdf", "image/jpeg", "image/png"]
 
     if file.content_type not in allowed:
@@ -56,7 +72,15 @@ async def upload(request: Request, file: UploadFile = File(...)):
     try:
         
         session_id = secrets.token_urlsafe(16)
+        guest_id = None
+        if not user:
+            guest_id = get_guest_id(request, response)
+        plan = get_user_plan(user["user_id"]) if user else "free"
         if MOCK_MODE:
+            if user:
+                consume_generation(user["user_id"], session_id)
+            else:
+                record_guest_generation(hash_guest_id(guest_id), hash_client_ip(request), session_id)
             from mock_data import load_mock_data, MOCK_SESSION_ID
             from db import supabase
 
@@ -94,7 +118,11 @@ async def upload(request: Request, file: UploadFile = File(...)):
             text_json = get_json(text)
 
             try:
-                code = generate(text_json)
+                if user:
+                    consume_generation(user["user_id"], session_id)
+                else:
+                    record_guest_generation(hash_guest_id(guest_id), hash_client_ip(request), session_id)
+                code = generate(text_json, plan=plan)
                 files, files_desc = parse_generated_files(code)
             except HTTPException:
                 raise
@@ -120,17 +148,13 @@ async def upload(request: Request, file: UploadFile = File(...)):
             traceback.print_exc()
         
 
-        if authorization and authorization.startswith("Bearer "):
-            token = authorization.split(" ", 1)[1]
-            user = verify_token(token)
-            print(f"Token verified: {bool(user)}, user: {user}")
-            if user:
-                try:
-                    portfolio = create_portfolio(user["user_id"], session_id)
-                    print(f"Portfolio created: {portfolio}")
-                except Exception as e:
-                    print(f"Portfolio record creation failed: {e}")
-                    traceback.print_exc()
+        if user:
+            try:
+                portfolio = create_portfolio(user["user_id"], session_id)
+                print(f"Portfolio created: {portfolio}")
+            except Exception as e:
+                print(f"Portfolio record creation failed: {e}")
+                traceback.print_exc()
 
     finally:
         os.remove(temp_path)
@@ -143,17 +167,19 @@ async def upload(request: Request, file: UploadFile = File(...)):
     }
 
 @app.post("/edit")
-async def edit(request: EditRequest):
+async def edit(request: EditRequest, user=Depends(get_current_user)):
     if not request.instruction.strip():
         raise HTTPException(status_code=400, detail="Please provide a valid instruction")
 
+    plan = get_user_plan(user["user_id"])
     matches = find_top_matches(request.session_id, request.instruction, top_k=3)
     if not matches:
         raise HTTPException(status_code=400, detail="No files found for this session")
 
+    consume_edit(user["user_id"], request.session_id)
     all_paths = get_all_file_path(request.session_id)
     try:
-        updated_files = update_files(request.session_id, matches, all_paths, request.instruction)
+        updated_files = update_files(request.session_id, matches, all_paths, request.instruction, plan=plan)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Edit failed: {e}")
 
@@ -222,11 +248,13 @@ async def upload_image(request: Request):
     }
 
 @app.post("/self-heal")
-async def self_heal(request: HealRequest):
+async def self_heal(request: HealRequest, user=Depends(get_current_user)):
     if not request.files:
         return HTTPException(status_code=400, detail="No files were provided")
     
-    raw = heal_files(request.files, request.error, request.implicated_files)
+    plan = get_user_plan(user["user_id"])
+    consume_edit(user["user_id"], "self-heal")
+    raw = heal_files(request.files, request.error, request.implicated_files, plan=plan)
     
     try:
         fixed_files = parse_generated_files(raw)

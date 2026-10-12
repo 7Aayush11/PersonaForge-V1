@@ -119,7 +119,7 @@ export default function DeployPanel({
     if (!slug.trim() || !files) return;
 
     if (!user) {
-      addToast({ type: "info", title: "Sign in required", message: "Sign in to deploy your portfolio." });
+      addToast("Sign in to deploy your portfolio.", "info");
       onSignIn();
       return;
     }
@@ -142,14 +142,14 @@ export default function DeployPanel({
 
       const data = await res.json();
       if (!res.ok) {
-        addToast({ type: "error", title: "Deploy failed", message: data.detail || "Couldn't deploy." });
+        addToast(data.detail || "Couldn't deploy.", "error");
         return;
       }
 
       setDeployedUrl(data.url);
-      addToast({ type: "success", title: "Portfolio deployed!", message: `Live at ${data.url}` });
+      addToast(`Live at ${data.url}`, "success");
     } catch (err) {
-      addToast({ type: "error", title: "Deploy failed", message: err.message });
+      addToast(err.message, "error");
     } finally {
       setDeploying(false);
     }
@@ -171,16 +171,16 @@ export default function DeployPanel({
 
       const data = await res.json();
       if (!res.ok) {
-        addToast({ type: "error", title: "Delete failed", message: data.detail });
+        addToast(data.detail, "error");
         return;
       }
 
       setDeployedUrl("");
       setSlug("");
       setConfirmDelete(false);
-      addToast({ type: "success", title: "Portfolio deleted", message: `${slugToDelete} has been taken down.` });
+      addToast(`${slugToDelete} has been taken down.`, "success");
     } catch (err) {
-      addToast({ type: "error", title: "Delete failed", message: err.message });
+      addToast(err.message, "error");
     } finally {
       setDeleting(false);
     }

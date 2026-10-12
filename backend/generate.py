@@ -1,14 +1,12 @@
-from google import genai
 from google.genai import types
-import os, traceback
+import traceback
+from ai_service import generate_content
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
-def generate(text: str):
+def generate(text: str, plan: str = "free"):
     
     try:
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
+        response = generate_content(
+            plan=plan,
             contents=text,
             config={
                 "system_instruction": """You are an expert frontend developer and UI/UX designer. Build a premium, modern, responsive personal portfolio from the provided information. Make the design feel intentionally created for this person rather than like a generic template.

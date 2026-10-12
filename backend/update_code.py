@@ -1,16 +1,15 @@
 from google.genai import types
-from google import genai
-import os, re, traceback
+import re, traceback
+from ai_service import generate_content
 from db import supabase
 from embeddings import embed_one
 from vector_store import get_session_files
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 FILE_PATTERN = re.compile(r"@@FILE:\s*(.+?)\s*\n(.*?)\n@@DESC:\s*(.+?)(?=\n@@FILE:|\Z)", re.DOTALL)
 
 
-def update_files(session_id: str, matches: list, all_paths: list, instruction: str) -> dict:
+def update_files(session_id: str, matches: list, all_paths: list, instruction: str, plan: str = "free") -> dict:
     matched_files_text = "\n\n".join(f"@@FILE: {m['file_path']}\n{m['content']}" for m in matches)
     manifest_text = "\n".join(f"- {p}" for p in all_paths)
     
@@ -60,8 +59,8 @@ def update_files(session_id: str, matches: list, all_paths: list, instruction: s
     )
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.1-flash-lite",
+        response = generate_content(
+            plan=plan,
             contents=instruction,
             config=types.GenerateContentConfig(system_instruction=system_instruction),
         )

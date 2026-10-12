@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { supabase } from "../supabaseClient";
-import { assemblePreviewHTML } from "../utils/assemblePreview";
 
 const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
 const slideUp = keyframes`from { transform: translateY(16px) translateX(-50%); opacity: 0; } to { transform: translateY(0) translateX(-50%); opacity: 1; }`;
@@ -130,14 +129,13 @@ const SuccessNote = styled.p`
   color: var(--text-muted);
 `;
 
-export default function DeployModal({ files, user, onSignIn, onClose, onDeployed, session_id, addToast }) {
+export default function DeployModal({ user, onSignIn, onClose, onDeployed, session_id, addToast }) {
   const [slug, setSlug] = useState("");
   const [deploying, setDeploying] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState("");
 
   const api = process.env.REACT_APP_API_URL;
-  const backendBase = api;
-
+  
   const handleDeploy = async () => {
     if (!slug.trim()) return;
     if (!user) { onSignIn(); return; }
@@ -158,14 +156,14 @@ export default function DeployModal({ files, user, onSignIn, onClose, onDeployed
 
       const data = await res.json();
       if (!res.ok) {
-        addToast({ type: "error", title: "Deploy failed", message: data.detail || "Couldn't deploy." });
+        addToast(data.detail || "Couldn't deploy.", "error");
         return;
       }
 
       setDeployedUrl(data.url);
       if (onDeployed) onDeployed(data.url, slug.trim());
     } catch (err) {
-      addToast({ type: "error", title: "Deploy failed", message: err.message });
+      addToast(err.message, "error");
     } finally {
       setDeploying(false);
     }
@@ -183,7 +181,7 @@ export default function DeployModal({ files, user, onSignIn, onClose, onDeployed
               Choose a name for your live link. It goes live instantly — no hosting setup needed.
             </ModalHint>
             <SlugRow>
-              <SlugPrefix>{backendBase}/p/</SlugPrefix>
+              <SlugPrefix>{api}/p/</SlugPrefix>
               <SlugInput
                 value={slug}
                 onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}

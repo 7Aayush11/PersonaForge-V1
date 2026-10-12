@@ -90,12 +90,12 @@ export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      addToast({ type: "error", title: "Invalid file", message: "Please choose an image file." });
+      addToast("Please choose an image file.", "error");
       return;
     }
 
     if (file.size > 15 * 1024 * 1024) {
-      addToast({ type: "error", title: "File too large", message: "Please choose an image under 15 MB." });
+      addToast("Please choose an image under 15 MB.", "error");
       return;
     }
 
@@ -116,7 +116,7 @@ export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated
       const data = await res.json();
 
       if (!res.ok) {
-        addToast({ type: "error", title: "Upload failed", message: data.detail || "Couldn't upload that image." });
+        addToast(data.detail || "Couldn't upload that image.", "error");
         return;
       }
 
@@ -126,10 +126,10 @@ export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated
       }
 
       setDoneSlots(prev => new Set([...prev, slotId]));
-      addToast({ type: "success", title: "Photo updated", message: `${slotId} updated successfully.` });
+      addToast(`${slotId} updated successfully.`, "success");
 
     } catch (err) {
-      addToast({ type: "error", title: "Upload failed", message: err.message });
+      addToast(err.message, "error");
     } finally {
       setUploadingSlot(null);
     }

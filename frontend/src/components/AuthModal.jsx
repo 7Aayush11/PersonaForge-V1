@@ -12,7 +12,7 @@ export default function AuthModal({ onClose, addToast }) {
     const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
     setLoading(false);
     if (error) {
-      addToast({ type: "error", title: "Couldn't send link", message: error.message });
+      addToast(error.message, "error");
       return;
     }
     setSent(true);
@@ -24,7 +24,7 @@ export default function AuthModal({ onClose, addToast }) {
       options: { redirectTo: window.location.origin },
     });
     if (error) {
-      addToast({ type: "error", title: "Sign-in failed", message: error.message });
+      addToast(error.message, "error");
     }
   };
 

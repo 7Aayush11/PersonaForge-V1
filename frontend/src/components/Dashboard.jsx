@@ -1,325 +1,375 @@
-import { useState, useEffect, useCallback } from "react";
-import styled, { keyframes } from "styled-components";
-import { supabase } from "../supabaseClient";
+import React, { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
 
-const fadeUp = keyframes`from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); }`;
+const api = process.env.REACT_APP_API_URL;
 
-const Wrap = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  gap: 32px;
-  overflow-y: auto;
-  animation: ${fadeUp} 0.3s ease;
+// ─── Styled components ────────────────────────────────────────────────────────
+
+const Wrapper = styled.div`
+  min-height: 100vh;
+  background: #0b0e14;
+  padding: 40px 24px 80px;
 `;
 
 const TopRow = styled.div`
-  width: 100%;
-  max-width: 860px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
 `;
 
 const PageTitle = styled.h1`
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 28px;
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  color: #e6eef8;
+  margin: 0;
+`;
+
+const PlanBadge = styled.span`
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 99px;
+  ${(p) =>
+    p.$premium
+      ? `
+    background: rgba(255, 107, 53, 0.18);
+    color: #ff6b35;
+    border: 1px solid rgba(255, 107, 53, 0.3);
+  `
+      : `
+    background: rgba(139, 149, 167, 0.12);
+    color: #8b95a7;
+    border: 1px solid rgba(139, 149, 167, 0.2);
+  `}
 `;
 
 const NewBtn = styled.button`
-  padding: 9px 20px;
-  border-radius: 20px;
-  border: none;
-  background: var(--ember);
-  color: #1a0f08;
-  font-weight: 700;
+  background: ${(p) => (p.$locked ? "transparent" : "#ff6b35")};
+  border: ${(p) =>
+    p.$locked ? "1px solid rgba(255,107,53,0.3)" : "none"};
+  color: ${(p) => (p.$locked ? "#ff6b35" : "#fff")};
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
   font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 9px;
   cursor: pointer;
-  transition: filter 0.15s ease;
-  &:hover { filter: brightness(1.1); }
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: opacity 0.15s, background 0.15s;
+
+  &:hover {
+    opacity: 0.85;
+  }
 `;
 
 const Grid = styled.div`
-  width: 100%;
-  max-width: 860px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 `;
 
 const Card = styled.div`
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: border-color 0.2s ease;
-  &:hover { border-color: var(--steel); }
+  background: #141a24;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-2px);
+  }
 `;
 
-const CardTop = styled.div`
+const CardPreview = styled.div`
+  height: 160px;
+  background: linear-gradient(135deg, #1c2430 0%, #0f1520 100%);
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  position: relative;
+  overflow: hidden;
 `;
 
-const CardTitle = styled.h3`
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 15px;
+const CardPreviewPattern = styled.div`
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at 30% 40%,
+    rgba(255, 107, 53, 0.08) 0%,
+    transparent 60%
+  );
+`;
+
+const CardBody = styled.div`
+  padding: 14px 16px;
+`;
+
+const CardTitle = styled.p`
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  word-break: break-all;
-`;
-
-const Badge = styled.span`
-  font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  flex-shrink: 0;
-  background: ${p => p.$live ? "rgba(26,188,156,0.12)" : "rgba(255,255,255,0.05)"};
-  border: 1px solid ${p => p.$live ? "rgba(26,188,156,0.35)" : "var(--border)"};
-  color: ${p => p.$live ? "var(--mint)" : "var(--text-muted)"};
+  color: #e6eef8;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const CardMeta = styled.p`
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-`;
-
-const LiveLink = styled.a`
-  font-family: var(--font-mono);
+  font-family: var(--font-body, "Inter", sans-serif);
   font-size: 12px;
-  color: var(--steel);
-  text-decoration: none;
-  word-break: break-all;
-  &:hover { text-decoration: underline; }
+  color: #8b95a7;
+  margin: 0;
 `;
 
 const CardActions = styled.div`
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 `;
 
 const ActionBtn = styled.button`
-  flex: 1;
-  min-width: 80px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #8b95a7;
+  font-family: var(--font-body, "Inter", sans-serif);
   font-size: 12px;
-  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  &:hover { border-color: var(--steel); color: var(--text-primary); }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
+  transition: color 0.15s, background 0.15s;
 
-const DangerBtn = styled(ActionBtn)`
-  &:hover { border-color: var(--danger); color: var(--danger); }
+  &:hover {
+    color: #e6eef8;
+    background: rgba(255, 255, 255, 0.09);
+  }
 `;
-
-const ConfirmBox = styled.div`
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const ConfirmText = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: var(--danger);
-`;
-
-const ConfirmRow = styled.div`display: flex; gap: 6px;`;
 
 const EmptyState = styled.div`
-  width: 100%;
-  max-width: 860px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 80px 24px;
+  grid-column: 1 / -1;
   text-align: center;
+  padding: 60px 24px;
 `;
 
-const EmptyIcon = styled.div`font-size: 48px; opacity: 0.4;`;
-const EmptyTitle = styled.h3`margin: 0; font-family: var(--font-display); font-size: 20px; color: var(--text-primary);`;
-const EmptyHint = styled.p`margin: 0; font-size: 14px; color: var(--text-muted); max-width: 360px; line-height: 1.6;`;
-
-const Spinner = styled.div`
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--border);
-  border-top-color: var(--ember);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  @keyframes spin { to { transform: rotate(360deg); } }
+const EmptyIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
 `;
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
+const EmptyTitle = styled.p`
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: #e6eef8;
+  margin: 0 0 6px;
+`;
 
-function PortfolioCard({ portfolio, onEdit, onDelete, addToast, backendUrl }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+const EmptyDesc = styled.p`
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-size: 14px;
+  color: #8b95a7;
+  margin: 0;
+`;
 
-  const liveUrl = portfolio.deploy_status && portfolio.slug
-    ? `${backendUrl}/p/${portfolio.slug}`
-    : null;
+const LoadingRow = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #8b95a7;
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-size: 14px;
+  gap: 10px;
+`;
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+// ─── Component ────────────────────────────────────────────────────────────────
 
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/portfolios/${portfolio.portfolio_id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        addToast({ type: "error", title: "Delete failed", message: err.detail });
-        return;
-      }
-
-      addToast({ type: "success", title: "Portfolio deleted", message: "All data has been removed." });
-      onDelete(portfolio.portfolio_id);
-    } catch (err) {
-      addToast({ type: "error", title: "Delete failed", message: err.message });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardTop>
-        <CardTitle>{portfolio.slug || `Portfolio ${portfolio.portfolio_id.slice(0, 6)}`}</CardTitle>
-        <Badge $live={portfolio.deploy_status}>{portfolio.deploy_status ? "Live" : "Draft"}</Badge>
-      </CardTop>
-
-      <CardMeta>Created {formatDate(portfolio.created_at)}</CardMeta>
-
-      {liveUrl && (
-        <LiveLink href={liveUrl} target="_blank" rel="noopener noreferrer">
-          {liveUrl}
-        </LiveLink>
-      )}
-
-      {!confirmDelete ? (
-        <CardActions>
-          <ActionBtn onClick={() => onEdit(portfolio.session_id)}>
-            ✎ Edit
-          </ActionBtn>
-          <DangerBtn onClick={() => setConfirmDelete(true)} disabled={deleting}>
-            Delete
-          </DangerBtn>
-        </CardActions>
-      ) : (
-        <ConfirmBox>
-          <ConfirmText>This deletes the portfolio and takes down the live link permanently.</ConfirmText>
-          <ConfirmRow>
-            <DangerBtn onClick={handleDelete} disabled={deleting} style={{ flex: 1 }}>
-              {deleting ? "Deleting…" : "Yes, delete"}
-            </DangerBtn>
-            <ActionBtn onClick={() => setConfirmDelete(false)} style={{ flex: 1 }}>
-              Cancel
-            </ActionBtn>
-          </ConfirmRow>
-        </ConfirmBox>
-      )}
-    </Card>
-  );
-}
-
-export default function Dashboard({ user, onNewPortfolio, onEditPortfolio, addToast }) {
+export default function Dashboard({
+  user,
+  onOpen,
+  onNew,
+  entitlements,
+  onUpgrade,
+}) {
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
-  const backendUrl = process.env.REACT_APP_API_URL;
+  const [loadError, setLoadError] = useState("");
+
+  const token =
+    user?.access_token ||
+    (typeof localStorage !== "undefined"
+      ? localStorage.getItem("sb-access-token")
+      : null);
+
+  const tier = entitlements?.tier || "free";
+  const isPremium = tier === "premium";
+
+  // Free tier users with 1+ portfolios are locked from creating more
+  const isNewLocked =
+    tier === "free" && portfolios.length >= 1;
 
   const fetchPortfolios = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      const res = await fetch(`${backendUrl}/portfolios`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${api}/portfolios`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
+      if (!res.ok) {
+        throw new Error(`Failed to load portfolios (${res.status})`);
+      }
+
       const data = await res.json();
-      setPortfolios(data.portfolios || []);
-    } catch (err) {
-      addToast({ type: "error", title: "Couldn't load portfolios", message: err.message });
+      setPortfolios(data.portfolios || data || []);
+    } catch (e) {
+      console.error("Failed to load portfolios:", e);
+      setLoadError("We couldn't load your portfolios. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
-  }, [backendUrl, addToast]);
+  }, [token]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setPortfolios([]);
+      setLoading(false);
+      return;
+    }
+
     fetchPortfolios();
   }, [user, fetchPortfolios]);
 
-  const handleDelete = (portfolio_id) => {
-    setPortfolios(prev => prev.filter(p => p.portfolio_id !== portfolio_id));
+  const handleNew = () => {
+    if (isNewLocked) {
+      onUpgrade && onUpgrade();
+    } else {
+      onNew && onNew();
+    }
   };
 
+  const badgeLabel = isPremium
+    ? "Premium ✦"
+    : tier === "guest"
+    ? "Guest"
+    : "Free Plan";
+
   return (
-    <Wrap>
+    <Wrapper>
       <TopRow>
-        <PageTitle>My Portfolios</PageTitle>
-        <NewBtn onClick={onNewPortfolio}>+ New Portfolio</NewBtn>
+        <TitleGroup>
+          <PageTitle>My Portfolios</PageTitle>
+          <PlanBadge $premium={isPremium}>{badgeLabel}</PlanBadge>
+        </TitleGroup>
+
+        <NewBtn $locked={isNewLocked} onClick={handleNew}>
+          {isNewLocked ? (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Upgrade for more
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Portfolio
+            </>
+          )}
+        </NewBtn>
       </TopRow>
 
-      {loading ? (
-        <Spinner />
-      ) : portfolios.length === 0 ? (
-        <EmptyState>
-          <EmptyIcon>🗂️</EmptyIcon>
-          <EmptyTitle>No portfolios yet</EmptyTitle>
-          <EmptyHint>Upload a resume to generate your first portfolio — it takes under 30 seconds.</EmptyHint>
-          <NewBtn onClick={onNewPortfolio}>Generate my first portfolio</NewBtn>
-        </EmptyState>
-      ) : (
-        <Grid>
-          {portfolios.map(p => (
-            <PortfolioCard
-              key={p.portfolio_id}
-              portfolio={p}
-              onEdit={onEditPortfolio}
-              onDelete={handleDelete}
-              addToast={addToast}
-              backendUrl={backendUrl}
-            />
-          ))}
-        </Grid>
-      )}
-    </Wrap>
+      <Grid>
+        {loading ? (
+          <LoadingRow>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.9s" repeatCount="indefinite" />
+              </path>
+            </svg>
+            Loading portfolios…
+          </LoadingRow>
+        ) : loadError ? (
+          <EmptyState>
+            <EmptyTitle>Could not load portfolios</EmptyTitle>
+            <EmptyDesc>{loadError}</EmptyDesc>
+            <ActionBtn onClick={fetchPortfolios}>Try again</ActionBtn>
+          </EmptyState>
+        ) : portfolios.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>📂</EmptyIcon>
+            <EmptyTitle>No portfolios yet</EmptyTitle>
+            <EmptyDesc>
+              Generate your first portfolio from the home page.
+            </EmptyDesc>
+          </EmptyState>
+        ) : (
+          portfolios.map((p, i) => (
+            <Card key={p.id || p.slug || i} onClick={() => onOpen && onOpen(p)}>
+              <CardPreview>
+                <CardPreviewPattern />
+                <span style={{ position: "relative", opacity: 0.5 }}>
+                  {p.name
+                    ? p.name.slice(0, 2).toUpperCase()
+                    : `P${i + 1}`}
+                </span>
+              </CardPreview>
+              <CardBody>
+                <CardTitle>{p.name || p.slug || `Portfolio ${i + 1}`}</CardTitle>
+                <CardMeta>
+                  {p.deployed_url
+                    ? p.deployed_url.replace(/^https?:\/\//, "")
+                    : p.created_at
+                    ? new Date(p.created_at).toLocaleDateString()
+                    : "Draft"}
+                </CardMeta>
+              </CardBody>
+              <CardActions>
+                <ActionBtn onClick={(e) => { e.stopPropagation(); onOpen && onOpen(p); }}>
+                  Open
+                </ActionBtn>
+                {p.deployed_url && (
+                  <ActionBtn
+                    as="a"
+                    href={p.deployed_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Visit ↗
+                  </ActionBtn>
+                )}
+              </CardActions>
+            </Card>
+          ))
+        )}
+      </Grid>
+    </Wrapper>
   );
 }
