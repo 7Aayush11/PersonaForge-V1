@@ -4,20 +4,21 @@ import styled from "styled-components";
 const Wrap = styled.div`
   position: fixed;
   top: 84px;
-  right: 24px;
-  z-index: 1000;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  z-index: 2000;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 10px;
-  width: min(360px, calc(100vw - 32px));
+  width: min(420px, calc(100vw - 32px));
   max-height: calc(100vh - 108px);
   overflow-y: auto;
   pointer-events: none;
 
   @media (max-width: 640px) {
     top: 78px;
-    right: 12px;
     width: calc(100vw - 24px);
     max-height: calc(100vh - 96px);
   }
@@ -141,6 +142,27 @@ const CloseBtn = styled.button`
   }
 `;
 
+const ActionBtn = styled.button`
+  margin-top: 10px;
+  padding: 7px 11px;
+  border: 1px solid var(--ember);
+  border-radius: 6px;
+  background: var(--ember);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
+  }
+`;
+
 const accentFor = (type) => {
   if (type === "success") return "var(--mint)";
   if (type === "error") return "var(--danger)";
@@ -196,6 +218,18 @@ function ToastCard({ toast, onDismiss }) {
       <Title>{toast.title}</Title>
 
       {toast.message && <Message>{toast.message}</Message>}
+
+      {toast.action && (
+        <ActionBtn
+          type="button"
+          onClick={() => {
+            toast.action.action?.();
+            onDismiss(toast.id);
+          }}
+        >
+          {toast.action.label}
+        </ActionBtn>
+      )}
 
       {toast.copyValue && (
         <TokenRow>

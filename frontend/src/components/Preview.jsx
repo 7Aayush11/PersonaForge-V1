@@ -286,7 +286,7 @@ export default function Preview({
 
   const isPremium = entitlements?.tier === "premium";
   const isFreeTier = entitlements?.tier === "free";
-  const canDeploy = entitlements?.can_deploy !== false && !!user;
+  const canDeploy = !!user;
 
   const weeklyEditsUsed = entitlements?.weekly_edits_used ?? 0;
   const weeklyEditsLimit = entitlements?.weekly_edits_limit ?? 3;

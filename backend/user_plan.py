@@ -1,10 +1,42 @@
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
 from db import supabase
+import logging
 
 FREE_GENERATION_LIMIT = 1
 FREE_WEEKLY_EDIT_LIMIT = 3
 
+logger = logging.getLogger(__name__)
+
+def release_generation(user_id: str, session_id: str) -> bool:
+    """Remove the generation reservation for a failed request."""
+    try:
+        result = supabase.rpc(
+            "release_user_generation",
+            {
+                "p_user_id": user_id,
+                "p_session_id": session_id,
+            },
+        ).execute()
+        return result.data is True
+    except Exception:
+        logger.exception("Failed to release generation usage")
+        return False
+
+def release_edit(user_id: str, session_id: str) -> bool:
+    """Remove the edit reservation for a failed request."""
+    try:
+        result = supabase.rpc(
+            "release_user_edit",
+            {
+                "p_user_id": user_id,
+                "p_session_id": session_id,
+            },
+        ).execute()
+        return result.data is True
+    except Exception:
+        logger.exception("Failed to release edit usage")
+        return False
 
 def get_user_plan(user_id: str) -> str:
     """Return premium only for an active, verified premium subscription; otherwise free."""

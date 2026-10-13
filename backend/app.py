@@ -18,7 +18,7 @@ from portfolio_store import create_portfolio, get_portfolios_for_user, set_deplo
 from db import supabase
 from assemble import assemble_html
 from image_inject import find_file_containing_slot, inject_image_into_file, validate_image_data_url
-from user_plan import get_user_plan, consume_generation, consume_edit, record_guest_generation, get_entitlements, get_profile, guest_generation_used
+from user_plan import (get_user_plan, consume_generation, consume_edit, release_generation, release_edit, record_guest_generation, get_entitlements, get_profile, guest_generation_used)
 from guest_identity import get_guest_id, hash_guest_id, hash_client_ip
 from billing import router as billing_router
 
@@ -78,7 +78,13 @@ async def upload(request: Request, response: Response, file: UploadFile = File(.
         plan = get_user_plan(user["user_id"]) if user else "free"
         if MOCK_MODE:
             if user:
-                consume_generation(user["user_id"], session_id)
+                try:
+                    consume_generation(user["user_id"], session_id)
+                    user_generation_reserved = True
+                except Exception:
+                    # The RPC may have committed even if its response failed.
+                    release_generation(user["user_id"], session_id)
+                    raise
             else:
                 record_guest_generation(hash_guest_id(guest_id), hash_client_ip(request), session_id)
             from mock_data import load_mock_data, MOCK_SESSION_ID
@@ -119,7 +125,13 @@ async def upload(request: Request, response: Response, file: UploadFile = File(.
 
             try:
                 if user:
-                    consume_generation(user["user_id"], session_id)
+                    try:
+                        consume_generation(user["user_id"], session_id)
+                        user_generation_reserved = True
+                    except Exception:
+                        # The RPC may have committed even if its response failed.
+                        release_generation(user["user_id"], session_id)
+                        raise
                 else:
                     record_guest_generation(hash_guest_id(guest_id), hash_client_ip(request), session_id)
                 code = generate(text_json, plan=plan)
@@ -156,8 +168,22 @@ async def upload(request: Request, response: Response, file: UploadFile = File(.
                 print(f"Portfolio record creation failed: {e}")
                 traceback.print_exc()
 
+    except Exception:
+        # Refund signed-in usage reserved by this request if generation fails.
+        # Guest accounting remains unchanged.
+        if user and user_generation_reserved:
+            refunded = release_generation(user["user_id"], session_id)
+            if not refunded:
+                print(
+                    "WARNING: generation failed but usage refund could not be confirmed "
+                    f"(user_id={user['user_id']}, session_id={session_id})"
+                )
+        raise
     finally:
-        os.remove(temp_path)
+        try:
+            os.remove(temp_path)
+        except OSError:
+            traceback.print_exc()
 
     return {
         "text": text,
@@ -176,21 +202,43 @@ async def edit(request: EditRequest, user=Depends(get_current_user)):
     if not matches:
         raise HTTPException(status_code=400, detail="No files found for this session")
 
-    consume_edit(user["user_id"], request.session_id)
-    all_paths = get_all_file_path(request.session_id)
+    # Reserve an edit only after input/session validation.
+    # If the RPC commits but its response fails, release the event as well.
     try:
-        updated_files = update_files(request.session_id, matches, all_paths, request.instruction, plan=plan)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Edit failed: {e}")
+        consume_edit(user["user_id"], request.session_id)
+    except Exception:
+        release_edit(user["user_id"], request.session_id)
+        raise
 
-    # Re-assemble and store updated HTML
     try:
+        all_paths = get_all_file_path(request.session_id)
+        updated_files = update_files(
+            request.session_id,
+            matches,
+            all_paths,
+            request.instruction,
+            plan=plan,
+        )
+
+        # Persisting assembled HTML is part of the edit's success path.
         assembled_html = assemble_html(updated_files)
         store_assembled_html(request.session_id, assembled_html)
-    except Exception as e:
-        print(f"Re-assembly after edit failed (non-fatal): {e}")
 
-    return {"updated_files": updated_files}
+        return {"updated_files": updated_files}
+
+    except Exception as e:
+        # A failed edit must not consume the user's weekly allowance.
+        refunded = release_edit(user["user_id"], request.session_id)
+        if not refunded:
+            print(
+                "WARNING: edit failed but usage refund could not be confirmed "
+                f"(user_id={user['user_id']}, session_id={request.session_id})"
+            )
+
+        if isinstance(e, HTTPException):
+            raise
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Edit failed: {e}") from e
 
 @app.post("/upload-image")
 async def upload_image(request: Request):
