@@ -11,6 +11,7 @@ import PricingPage from "./PricingPage";
 import ToastStack from "./Toast";
 import AuthModal from "./AuthModal";
 import { supabase } from "../supabaseClient";
+import Loader from "./Loader";
 
 const api = process.env.REACT_APP_API_URL;
 
@@ -25,6 +26,17 @@ const AppWrap = styled.div`
   background: #0b0e14;
   color: #e6eef8;
   font-family: var(--font-body, "Inter", sans-serif);
+`;
+
+const LoaderOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 14, 20, 0.94);
+  backdrop-filter: blur(8px);
 `;
 
 // Page-specific UI lives in PricingPage.jsx and StaticPage.jsx.
@@ -76,6 +88,7 @@ export default function Home() {
   // ── Portfolio state
   const [files, setFiles] = useState(null);
   const [session_id, setSessionId] = useState(null);
+  const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [slug, setSlug] = useState("");
   const [deployedUrl, setDeployedUrl] = useState(null);
@@ -225,6 +238,8 @@ export default function Home() {
   const handleUpload = useCallback(async (eventOrFile) => {
     const selectedFile = eventOrFile?.target?.files?.[0] || (eventOrFile instanceof File ? eventOrFile : null);
     if (!selectedFile) return;
+
+    setGenerating(true);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -272,6 +287,8 @@ export default function Home() {
       await fetchEntitlements();
     } catch (err) {
       addToast(err.message || "Something went wrong.", "error");
+    } finally {
+      setGenerating(false);
     }
   }, [token, navigate, fetchEntitlements, addToast]);
 
@@ -491,6 +508,12 @@ export default function Home() {
       )}
 
       {renderView()}
+
+      {(generating || editing) && (
+        <LoaderOverlay role="status" aria-live="polite" aria-label={generating ? "Generating portfolio" : "Applying portfolio edits"}>
+          <Loader />
+        </LoaderOverlay>
+      )}
 
       {showAuthModal && (
         <AuthModal

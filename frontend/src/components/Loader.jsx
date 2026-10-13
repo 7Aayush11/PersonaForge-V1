@@ -5,13 +5,13 @@ const Loader = () => {
   return (
     <StyledWrapper>
       <div className="loader-wrapper">
-        <span className="loader-letter">G</span>
-        <span className="loader-letter">e</span>
-        <span className="loader-letter">n</span>
-        <span className="loader-letter">e</span>
+        <span className="loader-letter">A</span>
+        <span className="loader-letter">I</span>
+        <span className="loader-letter">-</span>
+        <span className="loader-letter">W</span>
+        <span className="loader-letter">o</span>
         <span className="loader-letter">r</span>
-        <span className="loader-letter">a</span>
-        <span className="loader-letter">t</span>
+        <span className="loader-letter">k</span>
         <span className="loader-letter">i</span>
         <span className="loader-letter">n</span>
         <span className="loader-letter">g</span>
