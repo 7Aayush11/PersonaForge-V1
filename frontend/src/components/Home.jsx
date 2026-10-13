@@ -9,6 +9,8 @@ import Footer from "./Footer";
 import StaticPage from "./StaticPage";
 import PricingPage from "./PricingPage";
 import ToastStack from "./Toast";
+import AuthModal from "./AuthModal";
+import { supabase } from "../supabaseClient";
 
 const api = process.env.REACT_APP_API_URL;
 
@@ -89,6 +91,7 @@ export default function Home() {
     return "landing";
   });
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const { toasts, addToast, removeToast } = useToasts();
 
@@ -146,14 +149,44 @@ export default function Home() {
     }
   }, [token]);
 
-  // ── Auth init ──────────────────────────────────────────────────────────────
+  // ── Auth init: Supabase owns session persistence ────────────────────────────
 
   useEffect(() => {
-    // Try to restore user from localStorage (Supabase-style)
-    try {
-      const raw = localStorage.getItem("sb-user");
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
+    let mounted = true;
+
+    const applySession = (session) => {
+      if (!mounted) return;
+      setUser(
+        session
+          ? { ...session.user, access_token: session.access_token }
+          : null
+      );
+      if (session?.user) setShowAuthModal(false);
+    };
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Could not restore Supabase session:", error);
+          return;
+        }
+        applySession(data.session);
+      })
+      .catch((error) => {
+        console.error("Could not restore Supabase session:", error);
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -162,40 +195,30 @@ export default function Home() {
 
   // ── Sign in / out ──────────────────────────────────────────────────────────
 
-  const handleSignIn = useCallback(async () => {
-    // Trigger Supabase OAuth or modal — stub delegates to auth provider
-    // For now, we open a simple sign-in flow if one exists on the api
-    try {
-      const res = await fetch(`${api}/auth/google`, { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-        }
-      }
-    } catch {
-      addToast("Sign-in unavailable. Please try again.", "error");
-    }
-  }, [addToast]);
+  const handleSignIn = useCallback(() => {
+    // Use the existing Supabase-powered AuthModal. The backend does not
+    // provide /auth/google; Supabase handles OAuth and the callback itself.
+    setShowAuthModal(true);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
-    try {
-      await fetch(`${api}/auth/signout`, {
-        method: "POST",
-        credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-    } catch {}
-    setUser(null);
-    try { localStorage.removeItem("sb-user"); } catch {}
-    try { localStorage.removeItem("sb-access-token"); } catch {}
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      addToast(error.message || "Could not sign out. Please try again.", "error");
+      return;
+    }
+
+    // The Supabase auth-state listener clears the user/session token.
+    setShowAuthModal(false);
     setFiles(null);
     setSessionId(null);
+    setSlug("");
     setDeployedUrl(null);
     setView("landing");
     navigate("/");
     addToast("Signed out.", "info");
-  }, [token, navigate, addToast]);
+  }, [navigate, addToast]);
 
   // ── Generate ───────────────────────────────────────────────────────────────
 
@@ -468,6 +491,13 @@ export default function Home() {
       )}
 
       {renderView()}
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          addToast={addToast}
+        />
+      )}
 
       {view !== "preview" && <Footer onNavigate={navigate}/>}
 
