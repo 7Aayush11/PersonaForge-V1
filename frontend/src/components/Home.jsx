@@ -460,13 +460,28 @@ export default function Home() {
       return (
         <Dashboard
           user={user}
-          onOpen={(p) => {
-            setFiles(p.files);
-            setSessionId(p.session_id || p.id);
+          onOpen={async (p) => {
+            const sid = p.session_id || p.id;
+            setSessionId(sid);
             setSlug(p.slug || "");
             setDeployedUrl(p.deployed_url || null);
-            navigate("/preview");
-            setView("preview");
+            setGenerating(true);
+            try {
+              const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+              const res = await fetch(`${api}/portfolio/${sid}`, {
+                credentials: "include",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              if (!res.ok) throw new Error("Failed to load portfolio");
+              const data = await res.json();
+              setFiles(data.files);
+              navigate("/preview");
+              setView("preview");
+            } catch (err) {
+              console.error("Failed to open portfolio:", err);
+            } finally {
+              setGenerating(false);
+            }
           }}
           onNew={() => navigate("/")}
           entitlements={entitlements}
