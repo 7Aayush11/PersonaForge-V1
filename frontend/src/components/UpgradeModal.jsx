@@ -476,10 +476,8 @@ export default function UpgradeModal({ onClose, onSuccess, user, onSignIn, addTo
 
             <FeatureList>
               <FeatureItem>Premium AI model access and faster responses</FeatureItem>
-              <FeatureItem>Portfolio generation and AI-assisted editing</FeatureItem>
-              <FeatureItem>Portfolio deployment tools</FeatureItem>
+              <FeatureItem>Unlimited portfolio generation and AI-assisted editing</FeatureItem>
               <FeatureItem>Download portfolio source as ZIP</FeatureItem>
-              <FeatureItem>Portfolio analytics when enabled</FeatureItem>
             </FeatureList>
 
             <SubscribeBtn onClick={handleSubscribe} disabled={loading}>

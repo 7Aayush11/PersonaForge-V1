@@ -124,6 +124,7 @@ export default function Home() {
     else if (route === "/pricing") setView("pricing");
     else if (route === "/about") setView("about");
     else if (["/privacy", "/terms", "/cookies", "/refund-policy"].includes(route)) setView(route.slice(1));
+    else if (route === "/preview") setView("preview");
     else setView("landing");
     if (hash) window.setTimeout(() => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     else window.scrollTo({ top: 0, behavior: "smooth" });
@@ -398,7 +399,7 @@ export default function Home() {
     if (!session_id) return;
     setDeploying(true);
     try {
-      const res = await fetch(`${api}/deploy`, {
+      const res = await fetch(`${api}/p/${slug}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -439,6 +440,8 @@ export default function Home() {
           user={user}
           slug={slug}
           setSlug={setSlug}
+          session_id={session_id}
+          setFiles={setFiles}
           deployedUrl={deployedUrl}
           deploying={deploying}
           onDeploy={handleDeploy}
@@ -463,6 +466,7 @@ export default function Home() {
             setSlug(p.slug || "");
             setDeployedUrl(p.deployed_url || null);
             navigate("/preview");
+            setView("preview");
           }}
           onNew={() => navigate("/")}
           entitlements={entitlements}
