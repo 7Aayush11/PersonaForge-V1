@@ -72,6 +72,7 @@ async def upload(request: Request, response: Response, file: UploadFile = File(.
     try:
         
         session_id = secrets.token_urlsafe(16)
+        user_generation_reserved = False
         guest_id = None
         if not user:
             guest_id = get_guest_id(request, response)
