@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { useState } from "react";
 
 const Page = styled.main`
   max-width: 1000px;
@@ -155,7 +156,7 @@ const ConfirmActions = styled.div`
   }
 `;
 
-export default function PricingPage({ entitlements, onUpgrade, addToast, onRefreshEntitlements }) {
+export default function PricingPage({api, supabase, entitlements, onUpgrade, addToast, onRefreshEntitlements }) {
   
   const isPremium = entitlements?.plan === "premium" || entitlements?.subscription?.plan === "premium";
   const cancelAtPeriodEnd = entitlements?.subscription?.cancel_at_period_end;
