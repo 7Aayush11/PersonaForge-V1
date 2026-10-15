@@ -219,7 +219,7 @@ def get_profile(user_id: str):
     try:
         result = (
             supabase.table("profiles")
-            .select("plan, subscription_status, razorpay_subscription_id, current_period_end")
+            .select("plan, subscription_status, razorpay_subscription_id, current_period_end, cancel_at_period_end")
             .eq("user_id", user_id)
             .maybe_single()
             .execute()
@@ -229,6 +229,7 @@ def get_profile(user_id: str):
             "tier": get_user_plan(user_id),
             "subscription_status": data.get("subscription_status", "inactive"),
             "current_period_end": data.get("current_period_end"),
+            "cancel_at_period_end": data.get("cancel_at_period_end",False)
         }
     except Exception:
         return {"tier": "free", "subscription_status": "inactive", "current_period_end": None}

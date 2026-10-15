@@ -491,7 +491,8 @@ export default function Home() {
     }
 
     if (view === "pricing") {
-      return <PricingPage onUpgrade={() => setShowUpgrade(true)} />;
+      return <PricingPage
+      entitlements={entitlements} onUpgrade={() => setShowUpgrade(true)} addToast={addToast} onRefreshEntitlements={fetchEntitlements} supabase = {supabase} api={api}/>;
     }
 
     if (view === "about") {

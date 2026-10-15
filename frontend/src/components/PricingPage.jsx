@@ -79,9 +79,115 @@ const FinePrint = styled.p`
   margin: 14px auto 0; max-width: 520px; text-align: center;
   color: var(--text-muted, #8b95a7); font-size: 11px; line-height: 1.7;
 `;
+const CurrentPlanBanner = styled.div`
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+`;
 
-export default function PricingPage({ onUpgrade }) {
+const PlanInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const PlanBadge = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ember, #f97316);
+`;
+
+const PlanNote = styled.p`
+  font-size: 13px;
+  color: var(--text-muted);
+`;
+
+const CancelBtn = styled.button`
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  &:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+`;
+const ConfirmOverlay = styled.div`
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+`;
+
+const ConfirmBox = styled.div`
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  h3 { font-size: 18px; margin-bottom: 12px; }
+  p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+`;
+
+const ConfirmActions = styled.div`
+  display: flex; gap: 12px; justify-content: flex-end;
+  button {
+    padding: 10px 20px; border-radius: 8px; font-size: 14px;
+    cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--text);
+    &.confirm {
+      background: #ef4444; border-color: #ef4444;
+      color: white;
+      &:disabled { opacity: 0.6; cursor: not-allowed; }
+    }
+  }
+`;
+
+export default function PricingPage({ entitlements, onUpgrade, addToast, onRefreshEntitlements }) {
+  
+  const isPremium = entitlements?.plan === "premium" || entitlements?.subscription?.plan === "premium";
+  const cancelAtPeriodEnd = entitlements?.subscription?.cancel_at_period_end;
+  const periodEnd = entitlements?.subscription?.current_period_end;
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  
   return (
+    <>
+    {isPremium && (
+      <CurrentPlanBanner>
+        <PlanInfo>
+          <PlanBadge>Premium ✦ Active</PlanBadge>
+          {cancelAtPeriodEnd && periodEnd ? (
+            <PlanNote>
+              Your subscription is cancelled. Premium access ends on{" "}
+              <strong>{new Date(periodEnd * 1000).toLocaleDateString("en-IN", {
+                day: "numeric", month: "long", year: "numeric"
+              })}</strong>.
+            </PlanNote>
+          ) : (
+            <PlanNote>You're on Premium. Enjoy all features.</PlanNote>
+          )}
+        </PlanInfo>
+        {!cancelAtPeriodEnd && (
+          <CancelBtn onClick={() => setShowCancelConfirm(true)}>
+            Cancel Subscription
+          </CancelBtn>
+        )}
+      </CurrentPlanBanner>
+    )}
     <Page>
       <Title>Simple, transparent pricing.</Title>
       <Subtitle>Start free. Upgrade when you need more tools and flexibility.</Subtitle>
@@ -131,5 +237,51 @@ export default function PricingPage({ onUpgrade }) {
       <UpgradeButton onClick={onUpgrade}>Get Premium</UpgradeButton>
       <FinePrint>Feature availability and billing terms shown at checkout apply. Review your portfolio before publishing.</FinePrint>
     </Page>
+
+    {showCancelConfirm && (
+    <ConfirmOverlay onClick={() => setShowCancelConfirm(false)}>
+      <ConfirmBox onClick={e => e.stopPropagation()}>
+        <h3>Cancel subscription?</h3>
+        <p>
+          You'll keep Premium access until the end of your current billing period.
+          After that, your account reverts to Free.
+        </p>
+        <ConfirmActions>
+          <button onClick={() => setShowCancelConfirm(false)}>Keep Premium</button>
+          <button
+            className="confirm"
+            disabled={cancelling}
+            onClick={async () => {
+              setCancelling(true);
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(`${api}/billing/cancel-subscription`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                  },
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail?.message || data.detail || "Cancel failed");
+                setShowCancelConfirm(false);
+                addToast("Subscription cancelled. You keep Premium until period end.", "success");
+                // Refresh entitlements
+                if (onRefreshEntitlements) onRefreshEntitlements();
+              } catch (err) {
+                addToast(err.message || "Failed to cancel", "error");
+              } finally {
+                setCancelling(false);
+              }
+            }}
+          >
+            {cancelling ? "Cancelling..." : "Yes, Cancel"}
+          </button>
+        </ConfirmActions>
+      </ConfirmBox>
+    </ConfirmOverlay>
+  )}
+  </>
   );
 }

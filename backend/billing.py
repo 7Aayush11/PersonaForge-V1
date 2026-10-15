@@ -232,3 +232,51 @@ async def razorpay_webhook(request: Request):
             pass
 
     return {"received": True}
+
+@router.post("/cancel-subscription")
+async def cancel_subscription(user=Depends(get_current_user)):
+    
+    # Get user's subscription_id and current_period_end
+    profile = supabase.table("profiles").select(
+        "razorpay_subscription_id, plan, current_period_end"
+    ).eq("user_id", user["user_id"]).single().execute()
+    
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    p = profile.data
+    if p.get("plan") != "premium":
+        raise HTTPException(status_code=400, detail="No active premium subscription")
+    
+    sub_id = p.get("razorpay_subscription_id")
+    if not sub_id:
+        raise HTTPException(status_code=400, detail="No subscription ID found")
+    
+    import razorpay
+    client = razorpay.Client(
+        auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET"))
+    )
+    
+    try:
+        # Cancel at period end — user keeps premium until current_period_end
+        client.subscription.cancel(sub_id, {"cancel_at_cycle_end": 1})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Razorpay cancel failed: {e}")
+    
+    # Fetch subscription to get current_period_end if it's null
+    try:
+        sub = client.subscription.fetch(sub_id)
+        period_end = sub.get("current_end") or sub.get("charge_at")
+    except Exception:
+        period_end = None
+    
+    # Mark as cancelling in profiles — premium stays until period ends
+    supabase.table("profiles").update({
+        "cancel_at_period_end": True,
+        "current_period_end": period_end,
+    }).eq("user_id", user["user_id"]).execute()
+    
+    return {
+        "message": "Subscription cancelled. Premium access remains until end of billing period.",
+        "current_period_end": period_end,
+    }
