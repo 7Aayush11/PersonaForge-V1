@@ -1,5 +1,5 @@
-import styled from "styled-components";
 import { useState } from "react";
+import styled from "styled-components";
 
 const Page = styled.main`
   max-width: 1000px;
@@ -91,24 +91,20 @@ const CurrentPlanBanner = styled.div`
   gap: 16px;
   margin-bottom: 32px;
 `;
-
 const PlanInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
 `;
-
 const PlanBadge = styled.span`
   font-size: 14px;
   font-weight: 600;
   color: var(--ember, #f97316);
 `;
-
 const PlanNote = styled.p`
   font-size: 13px;
   color: var(--text-muted);
 `;
-
 const CancelBtn = styled.button`
   padding: 8px 16px;
   border-radius: 8px;
@@ -119,10 +115,7 @@ const CancelBtn = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-  &:hover {
-    border-color: #ef4444;
-    color: #ef4444;
-  }
+  &:hover { border-color: #ef4444; color: #ef4444; }
 `;
 const ConfirmOverlay = styled.div`
   position: fixed; inset: 0;
@@ -130,7 +123,6 @@ const ConfirmOverlay = styled.div`
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
 `;
-
 const ConfirmBox = styled.div`
   background: var(--surface);
   border: 1px solid var(--border);
@@ -141,7 +133,6 @@ const ConfirmBox = styled.div`
   h3 { font-size: 18px; margin-bottom: 12px; }
   p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
 `;
-
 const ConfirmActions = styled.div`
   display: flex; gap: 12px; justify-content: flex-end;
   button {
@@ -149,140 +140,142 @@ const ConfirmActions = styled.div`
     cursor: pointer; border: 1px solid var(--border);
     background: transparent; color: var(--text);
     &.confirm {
-      background: #ef4444; border-color: #ef4444;
-      color: white;
+      background: #ef4444; border-color: #ef4444; color: white;
       &:disabled { opacity: 0.6; cursor: not-allowed; }
     }
   }
 `;
 
-export default function PricingPage({api, supabase, entitlements, onUpgrade, addToast, onRefreshEntitlements }) {
-  
-  const isPremium = entitlements?.plan === "premium" || entitlements?.subscription?.plan === "premium";
+export default function PricingPage({ entitlements, onUpgrade, addToast, onRefreshEntitlements, supabase, api }) {
+  // ALL state and derived values inside the component
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  const isPremium = entitlements?.tier === "premium" ||
+                    entitlements?.subscription?.plan === "premium";
   const cancelAtPeriodEnd = entitlements?.subscription?.cancel_at_period_end;
   const periodEnd = entitlements?.subscription?.current_period_end;
 
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  
   return (
     <>
-    {isPremium && (
-      <CurrentPlanBanner>
-        <PlanInfo>
-          <PlanBadge>Premium ✦ Active</PlanBadge>
-          {cancelAtPeriodEnd && periodEnd ? (
-            <PlanNote>
-              Your subscription is cancelled. Premium access ends on{" "}
-              <strong>{new Date(periodEnd * 1000).toLocaleDateString("en-IN", {
-                day: "numeric", month: "long", year: "numeric"
-              })}</strong>.
-            </PlanNote>
-          ) : (
-            <PlanNote>You're on Premium. Enjoy all features.</PlanNote>
-          )}
-        </PlanInfo>
-        {!cancelAtPeriodEnd && (
-          <CancelBtn onClick={() => setShowCancelConfirm(true)}>
-            Cancel Subscription
-          </CancelBtn>
+      <Page>
+        {isPremium && (
+          <CurrentPlanBanner>
+            <PlanInfo>
+              <PlanBadge>Premium ✦ Active</PlanBadge>
+              {cancelAtPeriodEnd && periodEnd ? (
+                <PlanNote>
+                  Your subscription is cancelled. Premium access ends on{" "}
+                  <strong>{new Date(periodEnd * 1000).toLocaleDateString("en-IN", {
+                    day: "numeric", month: "long", year: "numeric"
+                  })}</strong>.
+                </PlanNote>
+              ) : (
+                <PlanNote>You're on Premium. Enjoy all features.</PlanNote>
+              )}
+            </PlanInfo>
+            {!cancelAtPeriodEnd && (
+              <CancelBtn onClick={() => setShowCancelConfirm(true)}>
+                Cancel Subscription
+              </CancelBtn>
+            )}
+          </CurrentPlanBanner>
         )}
-      </CurrentPlanBanner>
-    )}
-    <Page>
-      <Title>Simple, transparent pricing.</Title>
-      <Subtitle>Start free. Upgrade when you need more tools and flexibility.</Subtitle>
-      <Plans>
-        <Card>
-          <Tier>Free</Tier>
-          <Amount>₹0<span> / forever</span></Amount>
-          <Description>For trying PersonaForge and publishing your first portfolio.</Description>
-          <Features>
-            <Feature>1 portfolio generation</Feature>
-            <Feature>3 edits per week for signed-in users</Feature>
-            <Feature>Save your portfolio</Feature>
-            <Feature>Free deployment for signed-in users</Feature>
-            <Feature $off>Portfolio download</Feature>
-            <Feature $off>Premium AI model access</Feature>
-          </Features>
-        </Card>
-        <Card $featured>
-          <Badge>Popular</Badge>
-          <Tier>Premium — 3 months</Tier>
-          <Amount $featured>₹249<span> / 3 months</span></Amount>
-          <Description>More room to create and refine your portfolio.</Description>
-          <Features>
-            <Feature>Unlimited generation and editing, subject to fair-use rules</Feature>
-            <Feature>Save your portfolio</Feature>
-            <Feature>Deployment</Feature>
-            <Feature>Premium AI model access</Feature>
-            <Feature>AI-assisted editing</Feature>
-            <Feature>Portfolio download</Feature>
-          </Features>
-        </Card>
-        <Card>
-          <Badge>Monthly</Badge>
-          <Tier>Premium — 1 month</Tier>
-          <Amount>₹99<span> / month</span></Amount>
-          <Description>Flexible monthly access to premium features.</Description>
-          <Features>
-            <Feature>Unlimited generation and editing, subject to fair-use rules</Feature>
-            <Feature>Save your portfolio</Feature>
-            <Feature>Deployment</Feature>
-            <Feature>Premium AI model access</Feature>
-            <Feature>AI-assisted editing</Feature>
-            <Feature>Portfolio download</Feature>
-          </Features>
-        </Card>
-      </Plans>
-      <UpgradeButton onClick={onUpgrade}>Get Premium</UpgradeButton>
-      <FinePrint>Feature availability and billing terms shown at checkout apply. Review your portfolio before publishing.</FinePrint>
-    </Page>
 
-    {showCancelConfirm && (
-    <ConfirmOverlay onClick={() => setShowCancelConfirm(false)}>
-      <ConfirmBox onClick={e => e.stopPropagation()}>
-        <h3>Cancel subscription?</h3>
-        <p>
-          You'll keep Premium access until the end of your current billing period.
-          After that, your account reverts to Free.
-        </p>
-        <ConfirmActions>
-          <button onClick={() => setShowCancelConfirm(false)}>Keep Premium</button>
-          <button
-            className="confirm"
-            disabled={cancelling}
-            onClick={async () => {
-              setCancelling(true);
-              try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const res = await fetch(`${api}/billing/cancel-subscription`, {
-                  method: "POST",
-                  credentials: "include",
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-                  },
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail?.message || data.detail || "Cancel failed");
-                setShowCancelConfirm(false);
-                addToast("Subscription cancelled. You keep Premium until period end.", "success");
-                // Refresh entitlements
-                if (onRefreshEntitlements) onRefreshEntitlements();
-              } catch (err) {
-                addToast(err.message || "Failed to cancel", "error");
-              } finally {
-                setCancelling(false);
-              }
-            }}
-          >
-            {cancelling ? "Cancelling..." : "Yes, Cancel"}
-          </button>
-        </ConfirmActions>
-      </ConfirmBox>
-    </ConfirmOverlay>
-  )}
-  </>
+        <Title>Simple, transparent pricing.</Title>
+        <Subtitle>Start free. Upgrade when you need more tools and flexibility.</Subtitle>
+        <Plans>
+          <Card>
+            <Tier>Free</Tier>
+            <Amount>₹0<span> / forever</span></Amount>
+            <Description>For trying PersonaForge and publishing your first portfolio.</Description>
+            <Features>
+              <Feature>1 portfolio generation</Feature>
+              <Feature>3 edits per week for signed-in users</Feature>
+              <Feature>Save your portfolio</Feature>
+              <Feature>Free deployment for signed-in users</Feature>
+              <Feature $off>Portfolio download</Feature>
+              <Feature $off>Premium AI model access</Feature>
+            </Features>
+          </Card>
+          <Card $featured>
+            <Badge>Popular</Badge>
+            <Tier>Premium — 3 months</Tier>
+            <Amount $featured>₹249<span> / 3 months</span></Amount>
+            <Description>More room to create and refine your portfolio.</Description>
+            <Features>
+              <Feature>Unlimited generation and editing, subject to fair-use rules</Feature>
+              <Feature>Save your portfolio</Feature>
+              <Feature>Deployment</Feature>
+              <Feature>Premium AI model access</Feature>
+              <Feature>AI-assisted editing</Feature>
+              <Feature>Portfolio download</Feature>
+            </Features>
+          </Card>
+          <Card>
+            <Badge>Monthly</Badge>
+            <Tier>Premium — 1 month</Tier>
+            <Amount>₹99<span> / month</span></Amount>
+            <Description>Flexible monthly access to premium features.</Description>
+            <Features>
+              <Feature>Unlimited generation and editing, subject to fair-use rules</Feature>
+              <Feature>Save your portfolio</Feature>
+              <Feature>Deployment</Feature>
+              <Feature>Premium AI model access</Feature>
+              <Feature>AI-assisted editing</Feature>
+              <Feature>Portfolio download</Feature>
+            </Features>
+          </Card>
+        </Plans>
+        {!isPremium && (
+          <UpgradeButton onClick={onUpgrade}>Get Premium</UpgradeButton>
+        )}
+        <FinePrint>Feature availability and billing terms shown at checkout apply. Review your portfolio before publishing.</FinePrint>
+      </Page>
+
+      {showCancelConfirm && (
+        <ConfirmOverlay onClick={() => setShowCancelConfirm(false)}>
+          <ConfirmBox onClick={e => e.stopPropagation()}>
+            <h3>Cancel subscription?</h3>
+            <p>
+              You'll keep Premium access until the end of your current billing period.
+              After that, your account reverts to Free.
+            </p>
+            <ConfirmActions>
+              <button onClick={() => setShowCancelConfirm(false)}>Keep Premium</button>
+              <button
+                className="confirm"
+                disabled={cancelling}
+                onClick={async () => {
+                  setCancelling(true);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(`${api}/billing/cancel-subscription`, {
+                      method: "POST",
+                      credentials: "include",
+                      headers: {
+                        "Content-Type": "application/json",
+                        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                      },
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail?.message || data.detail || "Cancel failed");
+                    setShowCancelConfirm(false);
+                    addToast("Subscription cancelled. You keep Premium until period end.", "success");
+                    if (onRefreshEntitlements) onRefreshEntitlements();
+                  } catch (err) {
+                    addToast(err.message || "Failed to cancel", "error");
+                  } finally {
+                    setCancelling(false);
+                  }
+                }}
+              >
+                {cancelling ? "Cancelling..." : "Yes, Cancel"}
+              </button>
+            </ConfirmActions>
+          </ConfirmBox>
+        </ConfirmOverlay>
+      )}
+    </>
   );
 }
