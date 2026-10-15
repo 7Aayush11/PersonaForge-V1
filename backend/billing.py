@@ -266,7 +266,8 @@ async def cancel_subscription(user=Depends(get_current_user)):
     # Fetch subscription to get current_period_end if it's null
     try:
         sub = client.subscription.fetch(sub_id)
-        period_end = sub.get("current_end") or sub.get("charge_at")
+        raw_end = sub.get("current_end") or sub.get("charge_at")
+        period_end = datetime.fromtimestamp(raw_end, tz=timezone.utc).isoformat() if raw_end else None
     except Exception:
         period_end = None
     
