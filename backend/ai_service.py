@@ -31,10 +31,10 @@ def get_model_chain(plan: str = "free") -> list[str]:
     tier = normalize_plan(plan)
     if tier == "premium":
         primary = os.getenv("GEMINI_PREMIUM_MODEL", "gemini-3.8-flash")
-        return [primary, "gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
+        return [primary, "gemini-3.7-flash", "gemini-3.6-flash"]
     else:
         primary = os.getenv("GEMINI_FREE_MODEL", "gemini-3.6-flash")
-        return [primary, "gemini-3.8-flash", "gemini-2.5-flash"]
+        return [primary, "gemini-3.8-flash", "gemini-3.7-flash"]
 
 
 def get_ai_model(plan: str = "free") -> str:
@@ -59,8 +59,8 @@ def generate_content(plan: str, contents, config=None):
             if any(x in err_str for x in ["503", "unavailable", "overloaded", "resource_exhausted", "429"]):
                 last_error = e
                 if i < len(models) - 1:
-                    print(f"Model {model} unavailable (attempt {i+1}), trying fallback...")
-                    time.sleep(1)  # Brief pause before fallback
+                    print(f"Model {model} unavailable (attempt {i+1}), trying fallback... {e}")
+                    time.sleep(3)  # Brief pause before fallback
                 continue
             # Any other error (auth, invalid request, etc.) — raise immediately
             raise
