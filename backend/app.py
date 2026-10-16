@@ -190,6 +190,7 @@ async def upload(request: Request, response: Response, file: UploadFile = File(.
         "text": text,
         "session_id": session_id,
         "files": files,
+        "assembled_html": assembled_html,
         "description": files_desc
     }
 
@@ -317,7 +318,8 @@ async def get_portfolio(session_id: str):
     files = get_session_files(session_id)
     if not files:
         raise HTTPException(status_code=404, detail="No portfolio found for this session")
-    return {"session_id": session_id, "files": files}
+    assembled_html = get_assembled_html(session_id)
+    return {"session_id": session_id, "files": files, "assembled_html": assembled_html}
 
 @app.post("/deploy")
 async def deploy_site(request: DeployRequest, user=Depends(get_current_user)):

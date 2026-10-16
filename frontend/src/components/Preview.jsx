@@ -259,6 +259,7 @@ const StatusDot = styled.span`
 
 export default function Preview({
   files,
+  assembledHtml,
   session_id,
   setFiles,
   user,
@@ -293,10 +294,10 @@ export default function Preview({
 
   // Create and revoke the preview URL whenever the generated HTML changes.
   useEffect(() => {
-    const html = files && (
+    const html = assembledHtml || (files && (
       files["index.html"] ||
       Object.values(files).find((value) => typeof value === "string" && /<html|<!doctype html/i.test(value))
-    );
+    ));
     if (!html) {
       setPreviewSrc(null);
       return undefined;
@@ -304,7 +305,7 @@ export default function Preview({
     const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
     setPreviewSrc(url);
     return () => URL.revokeObjectURL(url);
-  }, [files]);
+  }, [files, assembledHtml]);
 
   const handleDownload = () => {
     if (!isPremium) {

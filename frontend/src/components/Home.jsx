@@ -93,6 +93,7 @@ export default function Home() {
   const [slug, setSlug] = useState("");
   const [deployedUrl, setDeployedUrl] = useState(null);
   const [deploying, setDeploying] = useState(false);
+  const [assembledHtml, setAssembledHtml] = useState(null);
 
   // ── UI state
   const [view, setView] = useState(() => {
@@ -282,6 +283,7 @@ export default function Home() {
 
       const data = await res.json();
       setFiles(data.files || data);
+      setAssembledHtml(data.assembled_html || null);
       setSessionId(data.session_id);
       navigate("/preview");
       setView("preview");
@@ -437,6 +439,7 @@ export default function Home() {
       return (
         <Preview
           files={files}
+          assembledHtml={assembledHtml}
           user={user}
           slug={slug}
           setSlug={setSlug}
@@ -475,6 +478,7 @@ export default function Home() {
               if (!res.ok) throw new Error("Failed to load portfolio");
               const data = await res.json();
               setFiles(data.files);
+              setAssembledHtml(data.assembled_html || null);
               navigate("/preview");
               setView("preview");
             } catch (err) {
