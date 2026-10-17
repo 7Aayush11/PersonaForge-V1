@@ -260,6 +260,7 @@ const StatusDot = styled.span`
 export default function Preview({
   files,
   assembledHtml,
+  setAssembledHTML,
   session_id,
   setFiles,
   user,
@@ -332,10 +333,10 @@ export default function Preview({
       addToast?.("Please choose an image under 15 MB.", "error");
       return;
     }
-    const html = files && (files["index.html"] || Object.values(files).find((value) => typeof value === "string" && /<html|<!doctype html/i.test(value)));
-    const slotMatch = html?.match(/(?:data-image-slot|data-slot|image-slot)=["']([^"']+)["']/i);
+    const allSrc = files ? Object.values(files).join("\n") : "";
+    const slotMatch = allSrc.match(/data-img-slot=["']([^"']+)["']/i);
     if (!slotMatch?.[1]) {
-      addToast?.("This portfolio has no replaceable image slot. Add an image slot in the portfolio HTML first.", "error");
+      addToast?.("This portfolio has no replaceable image slot.", "error");
       return;
     }
     setImageUploading(true);
@@ -355,6 +356,7 @@ export default function Preview({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "Image upload failed.");
       if (data.updated_files && setFiles) setFiles(data.updated_files);
+      if (data.assembled_html && setAssembledHTML) setAssembledHTML(data.assembled_html)
       addToast?.("Image uploaded!", "success");
     } catch (err) {
       addToast?.(err.message || "Image upload failed.", "error");

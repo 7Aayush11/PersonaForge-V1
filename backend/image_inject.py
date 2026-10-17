@@ -23,7 +23,7 @@ def inject_image_into_file(content: str, slot_id: str, data_url: str) -> str:
     # Strategy: find the full <img ...> tag containing this slot, then replace its src.
     # We capture the whole img tag (non-greedy, handles multiline with re.DOTALL).
     img_pattern = re.compile(
-        r'(<img\b[^>]*?data-img-slot\s*=\s*["\']' + re.escape(slot_id) + r'["\'][^>]*?>)',
+        r'(<img\b[^>]*?data-img-slot\s*=\s*["\']' + re.escape(slot_id) + r'["\'][^>]*?/?>)',
         re.DOTALL
     )
 

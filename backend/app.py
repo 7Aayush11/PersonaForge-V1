@@ -294,7 +294,8 @@ async def upload_image(request: Request):
     return {
         "slot_id": slot_id,
         "file_path": target_path,
-        "updated_files": updated_files
+        "updated_files": updated_files,
+        "assembled_html": assembled
     }
 
 @app.post("/self-heal")
