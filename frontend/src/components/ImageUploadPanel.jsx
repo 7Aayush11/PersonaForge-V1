@@ -80,7 +80,7 @@ const StatusDot = styled.span`
   flex-shrink: 0;
 `;
 
-export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated, addToast }) {
+export default function ImageUploadPanel({ imageSlots, sessionId, onAssembledHtmlUpdated, addToast }) {
   const [uploadingSlot, setUploadingSlot] = useState(null);
   const [doneSlots, setDoneSlots] = useState(new Set());
 
@@ -103,14 +103,15 @@ export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated
     try {
       const dataUrl = await compressImageFile(file, 800, 0.82);
 
+      const token = typeof localStorage !== "undefined" ? localStorage.getItem("sb-access-token") : null;
       const res = await fetch(`${api}/upload-image`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-          slot_id: slotId,
-          data_url: dataUrl,
-        }),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ session_id: sessionId, slot_id: slotId, data_url: dataUrl }),
       });
 
       const data = await res.json();
@@ -121,8 +122,8 @@ export default function ImageUploadPanel({ imageSlots, sessionId, onFilesUpdated
       }
 
       // Update local files state so preview re-renders with the new image
-      if (onFilesUpdated && data.updated_files) {
-        onFilesUpdated(data.updated_files);
+      if (onAssembledHtmlUpdated && data.assembled_html) {
+        onAssembledHtmlUpdated(data.assembled_html);
       }
 
       setDoneSlots(prev => new Set([...prev, slotId]));

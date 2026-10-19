@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import EditModal from "./EditModal";
 import { downloadPortfolioZip } from "../utils/downloadZip";
+import ImageUploadPanel from "./ImageUploadPanel";
+import { extractImageSlotsFromFiles } from "../utils/imageSlots";
 
 const api = process.env.REACT_APP_API_URL;
 
@@ -292,6 +294,7 @@ export default function Preview({
 
   const weeklyEditsUsed = entitlements?.weekly_edits_used ?? 0;
   const weeklyEditsLimit = entitlements?.weekly_edits_limit ?? 3;
+  const imageSlots = extractImageSlotsFromFiles(files);
 
   // Create and revoke the preview URL whenever the generated HTML changes.
   useEffect(() => {
@@ -316,54 +319,6 @@ export default function Preview({
     downloadPortfolioZip(files, addToast);
   };
 
-  const handleImageUpload = async (e) => {
-    const input = e.currentTarget;
-    const file = input.files?.[0];
-    if (!file) return;
-    input.value = "";
-    if (!session_id) {
-      addToast?.("This portfolio session is unavailable. Reopen it from your dashboard.", "error");
-      return;
-    }
-    if (!file.type.startsWith("image/")) {
-      addToast?.("Please choose an image file.", "error");
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      addToast?.("Please choose an image under 15 MB.", "error");
-      return;
-    }
-    const allSrc = files ? Object.values(files).join("\n") : "";
-    const slotMatch = allSrc.match(/data-img-slot=["']([^"']+)["']/i);
-    if (!slotMatch?.[1]) {
-      addToast?.("This portfolio has no replaceable image slot.", "error");
-      return;
-    }
-    setImageUploading(true);
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("Could not read the selected image."));
-        reader.readAsDataURL(file);
-      });
-      const res = await fetch(`${api}/upload-image`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ session_id, slot_id: slotMatch[1], data_url: dataUrl }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "Image upload failed.");
-      if (data.updated_files && setFiles) setFiles(data.updated_files);
-      if (data.assembled_html && setAssembledHTML) setAssembledHTML(data.assembled_html)
-      addToast?.("Image uploaded!", "success");
-    } catch (err) {
-      addToast?.(err.message || "Image upload failed.", "error");
-    } finally {
-      setImageUploading(false);
-    }
-  };
 
   return (
     <Layout>
@@ -443,30 +398,17 @@ export default function Preview({
         </SidebarSection>
 
         {/* Photo upload */}
-        <SidebarSection>
-          <SectionLabel>Profile photo</SectionLabel>
-          <ImageInput
-            id="photo-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            disabled={imageUploading}
-          />
-          <ImageLabel htmlFor="photo-upload">
-            {imageUploading ? (
-              "Uploading…"
-            ) : (
-              <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                Upload photo
-              </>
-            )}
-          </ImageLabel>
-        </SidebarSection>
+        <ImageUploadPanel
+          imageSlots={imageSlots}
+          sessionId={session_id}
+          onFilesUpdated={(updatedFiles) => {
+            if (setFiles) setFiles(updatedFiles);
+          }}
+          onAssembledHtmlUpdated={(html) => {
+            if (setAssembledHTML) setAssembledHTML(html);
+          }}
+          addToast={addToast}
+        />
 
         {/* Edit section label with counter */}
         <SidebarSection>
