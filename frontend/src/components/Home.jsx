@@ -227,6 +227,7 @@ export default function Home() {
     // The Supabase auth-state listener clears the user/session token.
     setShowAuthModal(false);
     setFiles(null);
+    setAssembledHtml(null)
     setSessionId(null);
     setSlug("");
     setDeployedUrl(null);
@@ -339,6 +340,7 @@ export default function Home() {
 
         const data = await res.json();
         setFiles(data.files || data);
+        setAssembledHtml(data.assembled_html || null);
         await fetchEntitlements();
       } catch (err) {
         // Try self-heal

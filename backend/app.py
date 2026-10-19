@@ -226,7 +226,7 @@ async def edit(request: EditRequest, user=Depends(get_current_user)):
         assembled_html = assemble_html(updated_files)
         store_assembled_html(request.session_id, assembled_html)
 
-        return {"updated_files": updated_files}
+        return {"updated_files": updated_files, "assembled_html": assembled_html}
 
     except Exception as e:
         # A failed edit must not consume the user's weekly allowance.

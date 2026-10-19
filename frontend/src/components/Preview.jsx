@@ -262,7 +262,7 @@ const StatusDot = styled.span`
 export default function Preview({
   files,
   assembledHtml,
-  setAssembledHTML,
+  setAssembledHtml,
   session_id,
   setFiles,
   user,
@@ -405,7 +405,7 @@ export default function Preview({
             if (setFiles) setFiles(updatedFiles);
           }}
           onAssembledHtmlUpdated={(html) => {
-            if (setAssembledHTML) setAssembledHTML(html);
+            if (setAssembledHtml) setAssembledHtml(html);
           }}
           addToast={addToast}
         />

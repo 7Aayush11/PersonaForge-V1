@@ -1,31 +1,32 @@
 
 export function extractImageSlotsFromFiles(files) {
   if (!files || typeof files !== "object") return [];
-
   const slots = [];
   const seen = new Set();
 
   Object.values(files).forEach((content) => {
     if (typeof content !== "string") return;
 
-    const slotRegex = /data-img-slot\s*=\s*["']([^"']+)["']/g;
-  
+    const slotIdRegex = /data-img-slot\s*=\s*["']([^"']+)["']/g;
     let slotMatch;
-    while ((slotMatch = slotRegex.exec(content)) !== null) {
+
+    while ((slotMatch = slotIdRegex.exec(content)) !== null) {
       const slotId = slotMatch[1];
       if (seen.has(slotId)) continue;
       seen.add(slotId);
 
-      const slotPos = slotMatch.index;
+      // Walk backward to find the opening <img of this exact tag
+      const before = content.lastIndexOf("<img", slotMatch.index);
+      if (before === -1) continue;
 
-      // Look backward and forward ~500 chars from the slot attribute
-      // to find the label and src on the same tag
-      const start = Math.max(0, slotPos - 500);
-      const end = Math.min(content.length, slotPos + 500);
-      const surrounding = content.slice(start, end);
+      // Walk forward to find the closing > of this exact tag
+      const closingBracket = content.indexOf(">", slotMatch.index);
+      if (closingBracket === -1) continue;
 
-      const labelMatch = /data-img-label\s*=\s*["']([^"']+)["']/.exec(surrounding);
-      const srcMatch = /\bsrc\s*=\s*["']([^"']+)["']/.exec(surrounding);
+      const fullTag = content.slice(before, closingBracket + 1);
+
+      const labelMatch = /data-img-label\s*=\s*["']([^"']+)["']/.exec(fullTag);
+      const srcMatch = /\bsrc\s*=\s*["']([^"']+)["']/.exec(fullTag);
 
       slots.push({
         slotId,
