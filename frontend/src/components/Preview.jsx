@@ -5,8 +5,6 @@ import { downloadPortfolioZip } from "../utils/downloadZip";
 import ImageUploadPanel from "./ImageUploadPanel";
 import { extractImageSlotsFromFiles } from "../utils/imageSlots";
 
-const api = process.env.REACT_APP_API_URL;
-
 // ─── Styled components ────────────────────────────────────────────────────────
 
 const Layout = styled.div`
@@ -203,32 +201,6 @@ const DeployedLink = styled.a`
   }
 `;
 
-const ImageInput = styled.input`
-  display: none;
-`;
-
-const ImageLabel = styled.label`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 28px 14px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  color: #8b95a7;
-  font-family: var(--font-body, "Inter", sans-serif);
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-  box-sizing: border-box;
-
-  &:hover {
-    border-color: rgba(255, 107, 53, 0.4);
-    color: #e6eef8;
-  }
-`;
-
 const BackBtn = styled.button`
   background: none;
   border: none;
@@ -279,14 +251,7 @@ export default function Preview({
   onUpgrade,
   addToast,
 }) {
-  const [imageUploading, setImageUploading] = useState(false);
   const [previewSrc, setPreviewSrc] = useState(null);
-
-  const token =
-    user?.access_token ||
-    (typeof localStorage !== "undefined"
-      ? localStorage.getItem("sb-access-token")
-      : null);
 
   const isPremium = entitlements?.tier === "premium";
   const isFreeTier = entitlements?.tier === "free";
